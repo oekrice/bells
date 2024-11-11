@@ -101,9 +101,10 @@ class init_bell:
         self.volume_ref = 0.0
         self.clapper_friction = 0.1 * self.friction
         self.stay_hit = False
-        self.stay_break_limit = 1.5
+        self.stay_break_limit = 0.5#1.5
 
         self.bell_angles = []
+        self.forces = []
         self.times = [0.0]
         self.stay_hit = 0
 
@@ -139,14 +140,14 @@ class init_bell:
                 self.velocity = -0.7 * self.velocity
                 self.bell_angle = 2 * np.pi + 2 * self.stay_angle - self.bell_angle
                 if abs(self.velocity) > self.stay_break_limit:
-                    self.stay_hit = True
+                    self.stay_hit = self.stay_hit + 1
                     self.velocity = -0.5 * self.velocity
             if self.bell_angle < -np.pi - self.stay_angle:
                 self.velocity = -0.7 * self.velocity
                 self.bell_angle = -2 * np.pi - 2 * self.stay_angle - self.bell_angle
 
                 if abs(self.velocity) > self.stay_break_limit:
-                    self.stay_hit = True
+                    self.stay_hit = self.stay_hit + 1
                     self.velocity = -0.5 * self.velocity
 
             # Update location of the clapper (using some physics which may well be dodgy)
@@ -187,14 +188,14 @@ class init_bell:
                 self.velocity = -0.7 * self.velocity
                 self.bell_angle = 2 * np.pi + 2 * self.stay_angle - self.bell_angle
                 if abs(self.velocity) > self.stay_break_limit:
-                    self.stay_hit = True
+                    self.stay_hit = self.stay_hit + 1
                     self.velocity = -0.5 * self.velocity
 
             if self.bell_angle < -np.pi - self.stay_angle:
                 self.velocity = -0.7 * self.velocity
                 self.bell_angle = -2 * np.pi - 2 * self.stay_angle - self.bell_angle
                 if abs(self.velocity) > self.stay_break_limit:
-                    self.stay_hit = True
+                    self.stay_hit = self.stay_hit + 1
                     self.velocity = -0.5 * self.velocity
 
             # Check if clapper needs to leave the bell
@@ -292,6 +293,7 @@ class init_bell:
         phy.time = phy.time + phy.dt
         self.times.append(phy.time)
         self.bell_angles.append(self.bell_angle)
+        self.forces.append(self.wheel_force)
 
     def ropelength(self):
         # Outputs the length of the rope above the garter hole, relative to the minimum.
@@ -326,7 +328,51 @@ class init_bell:
 
     def fitness_fn(self):
         """Define fitness function, only of variables of 'self'"""
+        if False:  # RINGING UP WITHOUT STAY HITS
+            angle_aim = np.pi
+            absangles = np.array(np.abs(self.bell_angles))
+            max_travel = np.pi + self.stay_angle
+            return np.sum((max_travel - np.abs(angle_aim - absangles)) ** 2 / max_travel**2) / len(np.array(self.bell_angles))
         if False:  # RINGING UP WITH STAY HITS
+            angle_aim = np.pi
+            absangles = np.array(np.abs(self.bell_angles))
+            max_travel = np.pi + self.stay_angle
+
             return np.sum(np.array(self.bell_angles) ** 2 / np.pi**2) / len(np.array(self.bell_angles)) / (self.stay_hit + 1)
-        if True:  # RINGING UP WITHOUT STAY HITS
-            return np.sum(np.array(self.bell_angles) ** 2 / np.pi**2) / len(np.array(self.bell_angles))
+
+        if True:  # RINGING DOWN
+            angle_aim = 0.0
+            absangles = np.abs((np.pi + self.stay_angle) - np.array(np.abs(self.bell_angles)))
+
+            max_angle = np.max(np.abs(self.bell_angles))
+            max_travel = np.pi + self.stay_angle
+
+            #Penalise for amount of time pulling?
+            forcetime = max(np.sum([np.array(self.forces) > 10])/len(self.forces), 0.5)
+            alpha = 4
+            return np.sum(absangles**alpha/max_travel**alpha) / (len(np.array(self.bell_angles)) * (self.stay_hit + 1))
+
+
+        #Score in the moment -- in a random 10 second window is the bell now further down than at the start, and by how much?
+        if False:
+            nangles = len(self.bell_angles)
+            maxheight_begin = np.max(np.abs(self.bell_angles[:nangles//2]))
+            maxheight_end = np.max(np.abs(self.bell_angles[nangles//2:]))
+            if maxheight_begin < 1e-6 or maxheight_end  < 1e-6:
+                return 1e6
+            if self.stay_hit < 1:
+                return maxheight_begin/maxheight_end
+            else:
+                return 0.0
+
+
+
+
+
+
+
+
+
+
+
+

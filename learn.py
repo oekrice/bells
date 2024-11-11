@@ -42,7 +42,8 @@ class run_bell(object):
     def get_scaled_state(self):
         """Get full system state, scaled into [0,1]."""
         """Angle then velocity (obviously veclotiy can be large)"""
-        return [self.bell.bell_angle / (np.pi + self.bell.stay_angle), self.bell.velocity / (1.0)]
+
+        return self.bell.get_scaled_state()
 
 
 def continuous_actuator_force(action):
@@ -54,7 +55,6 @@ def discrete_actuator_force(action):
         return 1.0
     else:
         return 0.0
-
 
 def probably_actuator_force(action):
     if action[0] > random.random():

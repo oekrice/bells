@@ -37,22 +37,24 @@ config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultS
 net = neat.nn.FeedForwardNetwork.create(c, config)
 sim = run_bell()
 
+
+# Run the given simulation for up to 120 seconds.
+
+sim.bell.bell_angle = uniform(-np.pi+0.01, np.pi+0.01)
+sim.bell.velocity = 0.0
+angles = [sim.bell.bell_angle]
+
 print()
 print("Initial conditions:")
 print("    angle = {0:.4f}".format(sim.bell.bell_angle))
 print(" velocity = {0:.4f}".format(sim.bell.velocity))
-
-# Run the given simulation for up to 120 seconds.
-
-sim.bell.bell_angle = 0.0
-angles = [sim.bell.bell_angle]
 
 while sim.phy.time < 60.0:
     inputs = sim.get_scaled_state()
     action = net.activate(inputs)
 
     # Apply action to the simulated cart-pole
-    # force = discrete_actuator_force(action)
+    #force = discrete_actuator_force(action)
     force = continuous_actuator_force(action)
     #force = probably_actuator_force(action)
     #print(force, inputs)
