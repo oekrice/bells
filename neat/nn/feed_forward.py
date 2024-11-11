@@ -26,7 +26,7 @@ class FeedForwardNetwork(object):
 
     @staticmethod
     def create(genome, config):
-        """ Receives a genome and returns its phenotype (a FeedForwardNetwork). """
+        """Receives a genome and returns its phenotype (a FeedForwardNetwork)."""
 
         # Gather expressed connections.
         connections = [cg.key for cg in genome.connections.values() if cg.enabled]

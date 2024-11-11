@@ -1,6 +1,5 @@
 """Handles the continuous-time recurrent neural network implementation."""
 
-
 from neat.graphs import required_for_output
 
 
@@ -16,6 +15,7 @@ class CTRNNNodeEval(object):
 
 class CTRNN(object):
     """Sets up the ctrnn network itself."""
+
     def __init__(self, inputs, outputs, node_evals):
         self.input_nodes = inputs
         self.output_nodes = outputs
@@ -87,7 +87,7 @@ class CTRNN(object):
 
     @staticmethod
     def create(genome, config, time_constant):
-        """ Receives a genome and returns its phenotype (a CTRNN). """
+        """Receives a genome and returns its phenotype (a CTRNN)."""
         genome_config = config.genome_config
         required = required_for_output(genome_config.input_keys, genome_config.output_keys, genome.connections)
 
@@ -111,11 +111,8 @@ class CTRNN(object):
             node = genome.nodes[node_key]
             activation_function = genome_config.activation_defs.get(node.activation)
             aggregation_function = genome_config.aggregation_function_defs.get(node.aggregation)
-            node_evals[node_key] = CTRNNNodeEval(time_constant,
-                                                 activation_function,
-                                                 aggregation_function,
-                                                 node.bias,
-                                                 node.response,
-                                                 inputs)
+            node_evals[node_key] = CTRNNNodeEval(
+                time_constant, activation_function, aggregation_function, node.bias, node.response, inputs
+            )
 
         return CTRNN(genome_config.input_keys, genome_config.output_keys, node_evals)

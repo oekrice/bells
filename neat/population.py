@@ -4,6 +4,7 @@ from neat.math_util import mean
 from neat.reporting import ReporterSet
 import pickle
 
+
 class CompleteExtinctionException(Exception):
     pass
 
@@ -22,24 +23,19 @@ class Population(object):
         self.reporters = ReporterSet()
         self.config = config
         stagnation = config.stagnation_type(config.stagnation_config, self.reporters)
-        self.reproduction = config.reproduction_type(config.reproduction_config,
-                                                     self.reporters,
-                                                     stagnation)
-        if config.fitness_criterion == 'max':
+        self.reproduction = config.reproduction_type(config.reproduction_config, self.reporters, stagnation)
+        if config.fitness_criterion == "max":
             self.fitness_criterion = max
-        elif config.fitness_criterion == 'min':
+        elif config.fitness_criterion == "min":
             self.fitness_criterion = min
-        elif config.fitness_criterion == 'mean':
+        elif config.fitness_criterion == "mean":
             self.fitness_criterion = mean
         elif not config.no_fitness_termination:
-            raise RuntimeError(
-                "Unexpected fitness_criterion: {0!r}".format(config.fitness_criterion))
+            raise RuntimeError("Unexpected fitness_criterion: {0!r}".format(config.fitness_criterion))
 
         if initial_state is None:
             # Create a population from scratch, then partition into species.
-            self.population = self.reproduction.create_new(config.genome_type,
-                                                           config.genome_config,
-                                                           config.pop_size)
+            self.population = self.reproduction.create_new(config.genome_type, config.genome_config, config.pop_size)
             self.species = config.species_set_type(config.species_set_config, self.reporters)
             self.generation = 0
             self.species.speciate(config, self.population, self.generation)
@@ -108,8 +104,7 @@ class Population(object):
                     break
 
             # Create the next generation from the current generation.
-            self.population = self.reproduction.reproduce(self.config, self.species,
-                                                          self.config.pop_size, self.generation)
+            self.population = self.reproduction.reproduce(self.config, self.species, self.config.pop_size, self.generation)
 
             # Check for complete extinction.
             if not self.species.species:
@@ -118,9 +113,9 @@ class Population(object):
                 # If requested by the user, create a completely new population,
                 # otherwise raise an exception.
                 if self.config.reset_on_extinction:
-                    self.population = self.reproduction.create_new(self.config.genome_type,
-                                                                   self.config.genome_config,
-                                                                   self.config.pop_size)
+                    self.population = self.reproduction.create_new(
+                        self.config.genome_type, self.config.genome_config, self.config.pop_size
+                    )
                 else:
                     raise CompleteExtinctionException()
 
@@ -131,7 +126,7 @@ class Population(object):
 
             self.generation += 1
 
-            with open('best_so_far', 'wb') as f:
+            with open("best_so_far", "wb") as f:
                 pickle.dump(self.best_genome, f)
 
         if self.config.no_fitness_termination:

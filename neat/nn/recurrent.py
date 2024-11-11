@@ -43,7 +43,7 @@ class RecurrentNetwork(object):
 
     @staticmethod
     def create(genome, config):
-        """ Receives a genome and returns its phenotype (a RecurrentNetwork). """
+        """Receives a genome and returns its phenotype (a RecurrentNetwork)."""
         genome_config = config.genome_config
         required = required_for_output(genome_config.input_keys, genome_config.output_keys, genome.connections)
 

@@ -1,4 +1,5 @@
 """A NEAT (NeuroEvolution of Augmenting Topologies) implementation"""
+
 import neat.nn as nn
 import neat.ctrnn as ctrnn
 import neat.iznn as iznn

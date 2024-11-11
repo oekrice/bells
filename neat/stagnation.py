@@ -1,4 +1,5 @@
 """Keeps track of whether species are making progress and helps remove those which are not."""
+
 import sys
 
 from neat.config import ConfigParameter, DefaultClassConfig
@@ -13,10 +14,14 @@ class DefaultStagnation(DefaultClassConfig):
 
     @classmethod
     def parse_config(cls, param_dict):
-        return DefaultClassConfig(param_dict,
-                                  [ConfigParameter('species_fitness_func', str, 'mean'),
-                                   ConfigParameter('max_stagnation', int, 15),
-                                   ConfigParameter('species_elitism', int, 0)])
+        return DefaultClassConfig(
+            param_dict,
+            [
+                ConfigParameter("species_fitness_func", str, "mean"),
+                ConfigParameter("max_stagnation", int, 15),
+                ConfigParameter("species_elitism", int, 0),
+            ],
+        )
 
     def __init__(self, config, reporters):
         # pylint: disable=super-init-not-called
@@ -24,8 +29,7 @@ class DefaultStagnation(DefaultClassConfig):
 
         self.species_fitness_func = stat_functions.get(config.species_fitness_func)
         if self.species_fitness_func is None:
-            raise RuntimeError(
-                "Unexpected species fitness func: {0!r}".format(config.species_fitness_func))
+            raise RuntimeError("Unexpected species fitness func: {0!r}".format(config.species_fitness_func))
 
         self.reporters = reporters
 
