@@ -38,7 +38,6 @@ dp.import_images(phy, bell)
 # set up the window
 pygame.display.set_caption("Animation")
 
-
 class Networks:
     def __init__(self):
         local_dir = os.path.dirname(__file__)
@@ -53,12 +52,11 @@ class Networks:
             down = pickle.load(f)
         self.down = neat.nn.FeedForwardNetwork.create(down, config)
 
-
 nets = Networks()
 
 if True:
     #Find current best ringing up
-    os.system('scp best_so_far ./networks/ring_down')
+    os.system('scp best_so_far ./networks/ring_up')
 
 async def main():
 
@@ -99,11 +97,6 @@ async def main():
                 bell.wheel_force = force*0.0
 
         dp.surface.fill(dp.WHITE)
-
-        bell.timestep(phy)
-
-        if phy.count > 2:
-            fitness = bell.fitness_fn()
 
         phy.count = phy.count + 1
 
@@ -152,6 +145,9 @@ async def main():
             if event.type == QUIT:
                 pygame.quit()
                 return
+
+        bell.timestep(phy)
+
 
         if bell.stay_hit > 0:
             bell.stay_angle = 1e6

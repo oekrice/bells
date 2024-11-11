@@ -101,7 +101,7 @@ class init_bell:
         self.volume_ref = 0.0
         self.clapper_friction = 0.1 * self.friction
         self.stay_hit = False
-        self.stay_break_limit = 0.5#1.5
+        self.stay_break_limit = 1.0
 
         self.bell_angles = []
         self.forces = []
@@ -340,7 +340,7 @@ class init_bell:
 
             return np.sum(np.array(self.bell_angles) ** 2 / np.pi**2) / len(np.array(self.bell_angles)) / (self.stay_hit + 1)
 
-        if True:  # RINGING DOWN
+        if False:  # RINGING DOWN
             angle_aim = 0.0
             absangles = np.abs((np.pi + self.stay_angle) - np.array(np.abs(self.bell_angles)))
 
@@ -352,20 +352,12 @@ class init_bell:
             alpha = 4
             return np.sum(absangles**alpha/max_travel**alpha) / (len(np.array(self.bell_angles)) * (self.stay_hit + 1))
 
-
-        #Score in the moment -- in a random 10 second window is the bell now further down than at the start, and by how much?
-        if False:
-            nangles = len(self.bell_angles)
-            maxheight_begin = np.max(np.abs(self.bell_angles[:nangles//2]))
-            maxheight_end = np.max(np.abs(self.bell_angles[nangles//2:]))
-            if maxheight_begin < 1e-6 or maxheight_end  < 1e-6:
-                return 1e6
-            if self.stay_hit < 1:
-                return maxheight_begin/maxheight_end
-            else:
-                return 0.0
-
-
+        if True:  # RINGING UP WITH STAY HITS PENALISED
+            angle_aim = np.pi
+            absangles = np.array(np.abs(self.bell_angles))
+            max_travel = np.pi + self.stay_angle
+            alpha = 4
+            return np.sum(np.array(self.bell_angles) ** alpha / max_travel**alpha) / len(np.array(self.bell_angles)) / (self.stay_hit + 1)**2
 
 
 

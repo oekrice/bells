@@ -12,6 +12,7 @@ import learn
 import neat
 import numpy as np
 from random import uniform, gauss
+import random
 
 runs_per_net = 5
 simulation_seconds = 60.0
@@ -26,7 +27,11 @@ def eval_genome(genome, config):
 
     for runs in range(runs_per_net):
         sim = run_bell()  # all the physics in here
-        sim.bell.bell_angle = uniform(np.pi+sim.bell.stay_angle-0.01, np.pi-sim.bell.stay_angle+0.01)
+        if random.random() < 0.75:
+            sim.bell.bell_angle = uniform(np.pi+sim.bell.stay_angle-0.01, np.pi-sim.bell.stay_angle+0.01)
+        else:
+            sim.bell.bell_angle = uniform(-0.01,0.01)
+
         sim.bell.velocity = 0.0#uniform(-2.5,2.5)
         # Run the given simulation for up to num_steps time steps.
 
