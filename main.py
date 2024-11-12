@@ -16,6 +16,8 @@ import neat
 import pickle
 import os
 import random
+from random import uniform, gauss
+import sys
 
 from bell_physics import init_bell, init_physics
 from display import display_tools
@@ -23,10 +25,26 @@ from display import display_tools
 if False:
     nest_asyncio.apply()
 
+if len(sys.argv) > 1:
+    load_num = int(sys.argv[1])
+else:
+    load_num = -1
+
 pygame.init()
 
 phy = init_physics()
 bell = init_bell(phy, 0.0)
+if random.random() < 0.0:   #pick a random angle
+    bell.bell_angle = uniform(-np.pi-bell.stay_angle, np.pi+bell.stay_angle)
+    bell.clapper_angle = bell.bell_angle
+else:
+    if random.random() < 0.5:   #important that it can get itself off at hand and back
+        bell.bell_angle = uniform(np.pi+0.95*bell.stay_angle, np.pi+bell.stay_angle)
+        bell.clapper_angle = bell.bell_angle + bell.clapper_limit - 0.01
+    else:
+        bell.bell_angle = uniform(-np.pi-0.95*bell.stay_angle, -np.pi-bell.stay_angle)
+        bell.clapper_angle = bell.bell_angle - bell.clapper_limit + 0.01
+
 dp = display_tools(phy, bell)
 
 bell.sound = pygame.mixer.Sound("bellsound_deep.wav")
@@ -45,18 +63,22 @@ class Networks:
         config = neat.Config(
             neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet, neat.DefaultStagnation, config_path
         )
-        with open("networks/ring_up", "rb") as f:
+        with open("networks/ring_up_verydecent", "rb") as f:
             up = pickle.load(f)
         self.up = neat.nn.FeedForwardNetwork.create(up, config)
         with open("networks/ring_down", "rb") as f:
             down = pickle.load(f)
         self.down = neat.nn.FeedForwardNetwork.create(down, config)
 
+if False:
+    #Find current best ringing up
+    if load_num < 0:
+        os.system('scp current_best ./networks/ring_down')
+    else:
+        os.system('scp ./current_network/%d ./networks/ring_down' % load_num)
+
 nets = Networks()
 
-if True:
-    #Find current best ringing up
-    os.system('scp best_so_far ./networks/ring_up')
 
 async def main():
 
@@ -95,6 +117,8 @@ async def main():
                 bell.wheel_force = force*bell.effect_force * wheel_force
             else:
                 bell.wheel_force = force*0.0
+
+        bell.pull = force
 
         dp.surface.fill(dp.WHITE)
 
@@ -147,7 +171,6 @@ async def main():
                 return
 
         bell.timestep(phy)
-
 
         if bell.stay_hit > 0:
             bell.stay_angle = 1e6

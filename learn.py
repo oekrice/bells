@@ -27,12 +27,13 @@ class run_bell(object):
     def step(self, force):
         # Calculate the force exactly as in the playable version
         if self.bell.effect_force < 0.0:  # Can pull the entire handstroke
-            self.bell.wheel_force = force*self.bell.effect_force * self.wheel_force
+            self.bell.wheel_force = force*self.bell.effect_force*self.wheel_force
         else:  # Can only pull some of the backstroke
             if self.bell.rlength > self.bell.max_length - self.bell.backstroke_pull:
-                self.bell.wheel_force = force*self.bell.effect_force * self.wheel_force
+                self.bell.wheel_force = force*self.bell.effect_force*self.wheel_force
             else:
                 self.bell.wheel_force = force*0.0
+        self.pull = force
         # Does a single timestep on the stuff in the bell class
         self.bell.timestep(self.phy)
         self.phy.count = self.phy.count + 1

@@ -6,6 +6,7 @@ import os
 import pickle
 
 import neat
+import sys
 
 # from cart_pole import CartPole, discrete_actuator_force
 from learn import run_bell, discrete_actuator_force, continuous_actuator_force, probably_actuator_force
@@ -20,8 +21,19 @@ import numpy as np
 # from movie import make_movie
 
 # load the winner
-with open("best_so_far", "rb") as f:
-    c = pickle.load(f)
+
+if len(sys.argv) > 1:
+    load_num = int(sys.argv[1])
+else:
+    load_num = -1
+
+if load_num < 0:
+    with open("current_best", "rb") as f:
+        c = pickle.load(f)
+
+else:
+    with open("./current_network/%d" % (load_num ), "rb") as f:
+        c = pickle.load(f)
 
 print("Loaded genome:")
 print(c)
@@ -40,15 +52,29 @@ sim = run_bell()
 
 # Run the given simulation for up to 120 seconds.
 
-sim.bell.bell_angle = uniform(-np.pi+0.01, np.pi+0.01)
+if random.random() < 0.0:   #pick a random angle
+    sim.bell.bell_angle = uniform(-np.pi-sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
+    sim.bell.clapper_angle = sim.bell.bell_angle
+else:
+    if random.random() < 0.5:   #important that it can get itself off at hand and back
+        sim.bell.bell_angle = uniform(np.pi+0.95*sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
+        sim.bell.clapper_angle = sim.bell.bell_angle + sim.bell.clapper_limit - 0.01
+    else:
+        sim.bell.bell_angle = uniform(-np.pi-0.95*sim.bell.stay_angle, -np.pi-sim.bell.stay_angle)
+        sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
+
 sim.bell.velocity = 0.0
-angles = [sim.bell.bell_angle]
+
+
+angles_log = [sim.bell.bell_angle]
+velocities_log = [sim.bell.velocity]
 
 print()
 print("Initial conditions:")
 print("    angle = {0:.4f}".format(sim.bell.bell_angle))
 print(" velocity = {0:.4f}".format(sim.bell.velocity))
 
+fitness = 0
 while sim.phy.time < 60.0:
     inputs = sim.get_scaled_state()
     action = net.activate(inputs)
@@ -60,14 +86,13 @@ while sim.phy.time < 60.0:
     #print(force, inputs)
     # Doesn't matter what you do with this as long as it's consistent.
     sim.step(force)
-    angles.append(sim.bell.bell_angle)
+    angles_log.append(sim.bell.bell_angle)
+    velocities_log.append(sim.bell.velocity)
+    fitness = fitness + sim.bell.fitness_increment(sim.phy)
+    #print(sim.bell.fitness_increment(sim.phy)*60*60)
 
-
-fitness = sim.bell.fitness_fn()
+#fitness = sim.bell.fitness_fn()
 print("fitness", fitness)
-
-plt.plot(sim.bell.times, angles)
-plt.show()
 
 print()
 print("Final conditions:")
@@ -75,5 +100,50 @@ print("    angle = {0:.4f}".format(sim.bell.bell_angle))
 print(" velocity = {0:.4f}".format(sim.bell.velocity))
 print()
 
+plt.plot(sim.bell.times, angles_log)
+plt.plot(sim.bell.times, 0.0*np.ones(len(sim.bell.times)),linestyle = 'dotted')
+plt.plot(sim.bell.times, np.pi*np.ones(len(sim.bell.times)),linestyle = 'dashed')
+plt.plot(sim.bell.times, -np.pi*np.ones(len(sim.bell.times)),linestyle = 'dashed')
 
-# make_movie(net, discrete_actuator_force, 15.0, "feedforward-movie.mp4")
+plt.ylim(-np.pi-sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
+plt.close()
+
+maxvel = np.max(np.abs(velocities_log))
+
+def plot_forces():
+    #Does a colourmap of the forces based on the input states
+    angles = np.linspace(-np.pi-sim.bell.stay_angle, np.pi+sim.bell.stay_angle, 250)
+    velocities = np.linspace(-10.0, 10.0, 300)
+    mat = np.zeros((len(angles), len(velocities)))
+    for i, angle in enumerate(angles):
+        for j, velocity in enumerate(velocities):
+            mat[i,j] = net.activate([angle / (np.pi + sim.bell.stay_angle), velocity / (10.0)])[0]
+    plt.xlabel('Bell angle')
+    plt.ylabel('Bell velocity')
+    im = plt.pcolormesh(angles, velocities, mat.T, vmin = 0.0, vmax = 1.0, cmap = 'plasma')
+    plt.contour(angles, velocities, mat.T, np.linspace(0.0,1.0,11), colors = 'black')
+    plt.colorbar(im, label = 'Force')
+    plt.plot(angles_log, velocities_log, c= 'white')
+
+    plt.show()
+
+plot_forces()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

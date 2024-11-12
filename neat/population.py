@@ -73,6 +73,7 @@ class Population(object):
         if self.config.no_fitness_termination and (n is None):
             raise RuntimeError("Cannot have no generational limit with no fitness termination")
 
+        overall_best_fitness = 0.0
         k = 0
         while n is None or k < n:
             k += 1
@@ -126,8 +127,13 @@ class Population(object):
 
             self.generation += 1
 
-            with open("best_so_far", "wb") as f:
-                pickle.dump(self.best_genome, f)
+            if best.fitness > overall_best_fitness:
+                overall_best_fitness = best.fitness
+                with open("current_best", "wb") as f:
+                    pickle.dump(self.best_genome, f)
+
+            with open("./current_network/%d" % (k-1), "wb") as f:
+                pickle.dump(best, f)
 
         if self.config.no_fitness_termination:
             self.reporters.found_solution(self.config, self.generation, self.best_genome)

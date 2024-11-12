@@ -14,9 +14,13 @@ import numpy as np
 from random import uniform, gauss
 import random
 
-runs_per_net = 20
+runs_per_net = 25
 simulation_seconds = 60.0
 ngenerations = 1000
+
+for i in range(0,1000):
+    if os.path.isfile('./current_network/%d' % i):
+        os.remove('./current_network/%d' % i)
 
 # Use the NN network phenotype and the discrete actuator force function.
 def eval_genome(genome, config):
@@ -26,13 +30,21 @@ def eval_genome(genome, config):
 
     for runs in range(runs_per_net):
         sim = run_bell()  # all the physics in here
-        if random.random() < 0.75:
-            sim.bell.bell_angle = uniform(np.pi+sim.bell.stay_angle/2, np.pi-sim.bell.stay_angle/2)
+        if random.random() < 0.3:   #pick a random angle
+            sim.bell.bell_angle = uniform(-np.pi-sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
+            sim.bell.clapper_angle = sim.bell.bell_angle
         else:
-            sim.bell.bell_angle = uniform(-0.01,0.01)
-            sim.bell.velocity = uniform(-0.01,0.01)
-        # Run the given simulation for up to num_steps time steps.
+            if random.random() < 0.5:   #important that it can get itself off at hand and back
+                sim.bell.bell_angle = uniform(np.pi+0.95*sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
+                sim.bell.clapper_angle = sim.bell.bell_angle + sim.bell.clapper_limit - 0.01
+            else:
+                sim.bell.bell_angle = uniform(-np.pi-0.95*sim.bell.stay_angle, -np.pi-sim.bell.stay_angle)
+                sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
 
+        sim.bell.velocity = 0.0
+
+        # Run the given simulation for up to num_steps time steps.
+        fitness = 0.0
         while sim.phy.time < simulation_seconds:
             # Inputs are the things we can know -- in my case it is the angle and speed of the bell (for now)
             # Do try to remember to get inputs in the range (0,1). Can do easily enough.
@@ -44,7 +56,8 @@ def eval_genome(genome, config):
 
             sim.step(force)
 
-        fitness = sim.bell.fitness_fn()
+            fitness = fitness + sim.bell.fitness_increment(sim.phy)
+        #fitness = sim.bell.fitness_fn()
         fitnesses.append(fitness)
     # The genome's fitness is its worst performance across all runs.
     return min(fitnesses)

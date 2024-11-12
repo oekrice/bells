@@ -101,12 +101,13 @@ class init_bell:
         self.volume_ref = 0.0
         self.clapper_friction = 0.1 * self.friction
         self.stay_hit = False
-        self.stay_break_limit = 1.0
+        self.stay_break_limit = 0.5
 
         self.bell_angles = []
         self.forces = []
         self.times = [0.0]
         self.stay_hit = 0
+        self.pull = 0.0
 
     def timestep(self, phy):
         # Do the timestep here, using only bell.force, which comes either from an input or the machine
@@ -129,7 +130,9 @@ class init_bell:
             # Velocity timestep (forward Euler)
             self.velocity = self.velocity + self.accel * phy.dt
             # extra friction so it actually stops at some point
-            if abs(self.velocity) < 0.01 and self.wheel_force == 0.0:
+            if abs(self.velocity) < 0.01 and self.wheel_force == 0.0 and self.bell_angle >= np.pi:
+                self.velocity = 0.5 * self.velocity
+            if abs(self.bell_angle) < 1e-4 and abs(self.velocity) < 0.01:
                 self.velocity = 0.5 * self.velocity
 
             self.prev_angle = self.bell_angle
@@ -177,7 +180,9 @@ class init_bell:
             # Velocity timestep (forward Euler)
             self.velocity = self.velocity + self.accel * phy.dt
             # extra friction so it actually stops at some point
-            if abs(self.velocity) < 0.01 and self.wheel_force == 0.0:
+            if abs(self.velocity) < 0.01 and self.wheel_force == 0.0  and self.bell_angle >= np.pi:
+                self.velocity = 0.5 * self.velocity
+            if abs(self.bell_angle) < 1e-4 and abs(self.velocity) < 0.01:
                 self.velocity = 0.5 * self.velocity
 
             self.prev_angle = self.bell_angle
@@ -359,9 +364,28 @@ class init_bell:
             alpha = 4
             return np.sum(np.array(self.bell_angles) ** alpha / max_travel**alpha) / len(np.array(self.bell_angles)) / (self.stay_hit + 1)**2
 
+    def fitness_increment(self, phy):
+        """Fitness function at a given time rather than evaulating after the fact"""
+        """Must multiply by dt/tmax or equivalent"""
+        mult = 60.0*phy.FPS
+        if True:  #RINGING DOWN
+            if np.abs(self.bell_angle) > np.pi:
+                #Bell is over the balance
+                over_balance = True
+            else:
+                over_balance = False
+        force_fraction = 0.1 #How much to care about the force applied at each stroke
+        alpha = 4  #Distance factor
+        if over_balance:
+            fitness_increment = 0.5*(1.0 - ((np.abs(self.bell_angle) - np.pi)/self.stay_angle))   #Encourage to ring to the balance
+        else:
+            downness = (1.0 - np.abs(self.bell_angle)/np.pi)**alpha
+            forceness = (1.0 - self.pull)**alpha
+            fitness_increment = force_fraction*forceness + (1.0 - force_fraction)*downness
 
+        fitness_increment = fitness_increment/(self.stay_hit + 1)
 
-
+        return fitness_increment/mult
 
 
 
