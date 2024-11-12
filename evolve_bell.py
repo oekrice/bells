@@ -14,10 +14,9 @@ import numpy as np
 from random import uniform, gauss
 import random
 
-runs_per_net = 5
+runs_per_net = 20
 simulation_seconds = 60.0
 ngenerations = 1000
-
 
 # Use the NN network phenotype and the discrete actuator force function.
 def eval_genome(genome, config):
@@ -28,11 +27,10 @@ def eval_genome(genome, config):
     for runs in range(runs_per_net):
         sim = run_bell()  # all the physics in here
         if random.random() < 0.75:
-            sim.bell.bell_angle = uniform(np.pi+sim.bell.stay_angle-0.01, np.pi-sim.bell.stay_angle+0.01)
+            sim.bell.bell_angle = uniform(np.pi+sim.bell.stay_angle/2, np.pi-sim.bell.stay_angle/2)
         else:
             sim.bell.bell_angle = uniform(-0.01,0.01)
-
-        sim.bell.velocity = 0.0#uniform(-2.5,2.5)
+            sim.bell.velocity = uniform(-0.01,0.01)
         # Run the given simulation for up to num_steps time steps.
 
         while sim.phy.time < simulation_seconds:
