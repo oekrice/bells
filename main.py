@@ -70,7 +70,7 @@ class Networks:
             down = pickle.load(f)
         self.down = neat.nn.FeedForwardNetwork.create(down, config)
 
-if True:
+if False:
     #Find current best ringing up
     if load_num < 0:
         os.system('scp current_best ./networks/ring_down')
