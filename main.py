@@ -63,7 +63,7 @@ class Networks:
         config = neat.Config(
             neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet, neat.DefaultStagnation, config_path
         )
-        with open("networks/ring_up_verydecent", "rb") as f:
+        with open("networks/ring_up", "rb") as f:
             up = pickle.load(f)
         self.up = neat.nn.FeedForwardNetwork.create(up, config)
         with open("networks/ring_down", "rb") as f:
@@ -73,9 +73,9 @@ class Networks:
 if False:
     #Find current best ringing up
     if load_num < 0:
-        os.system('scp current_best ./networks/ring_down')
+        os.system('scp current_best ./networks/ring_up')
     else:
-        os.system('scp ./current_network/%d ./networks/ring_down' % load_num)
+        os.system('scp ./current_network/%d ./networks/ring_up' % load_num)
 
 nets = Networks()
 
