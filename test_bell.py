@@ -48,8 +48,6 @@ config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultS
 
 net = neat.nn.FeedForwardNetwork.create(c, config)
 sim = run_bell()
-
-
 # Run the given simulation for up to 120 seconds.
 
 if random.random() < 0.0:   #pick a random angle
@@ -130,8 +128,9 @@ def plot_forces():
     plt.contour(angles, velocities, mat.T, np.linspace(0.0,1.0,11), colors = 'black')
     plt.colorbar(im, label = 'Force')
     plt.plot(angles_log, velocities_log, c= 'white')
-
-    plt.show()
+    plt.title('Generation %d, Fitness = %.3f' % (load_num, c.fitness))
+    plt.savefig('network_graphs/%04d.png' % load_num)
+    plt.close()
 
 plot_forces()
 

@@ -49,8 +49,8 @@ if True:
     bell.bell_angle = 0.0
     bell.clapper_angle = 0.0
 
-#bell.bell_angle = uniform(np.pi+0.95*bell.stay_angle, np.pi+bell.stay_angle)
-#bell.clapper_angle = bell.bell_angle + bell.clapper_limit - 0.01
+#bell.bell_angle = uniform(-np.pi-0.95*bell.stay_angle, -np.pi-bell.stay_angle)
+#bell.clapper_angle = bell.bell_angle - bell.clapper_limit - 0.01
 
 dp = display_tools(phy, bell)
 
