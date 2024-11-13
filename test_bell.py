@@ -65,6 +65,12 @@ else:
 
 sim.bell.velocity = 0.0
 
+if random.random() < 1.0:
+    sim.bell.bell_angle = 0.0
+    sim.bell.clapper_angle = 0.0
+else:
+    sim.bell.bell_angle = uniform(-np.pi-0.95*sim.bell.stay_angle, -np.pi-sim.bell.stay_angle)
+    sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
 
 angles_log = [sim.bell.bell_angle]
 velocities_log = [sim.bell.velocity]

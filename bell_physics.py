@@ -101,7 +101,7 @@ class init_bell:
         self.volume_ref = 0.0
         self.clapper_friction = 0.1 * self.friction
         self.stay_hit = False
-        self.stay_break_limit = 0.5
+        self.stay_break_limit = 1.0
 
         self.bell_angles = []
         self.forces = []
@@ -144,14 +144,14 @@ class init_bell:
                 self.bell_angle = 2 * np.pi + 2 * self.stay_angle - self.bell_angle
                 if abs(self.velocity) > self.stay_break_limit:
                     self.stay_hit = self.stay_hit + 1
-                    self.velocity = -0.5 * self.velocity
+                    #self.velocity = -0.5 * self.velocity
             if self.bell_angle < -np.pi - self.stay_angle:
                 self.velocity = -0.7 * self.velocity
                 self.bell_angle = -2 * np.pi - 2 * self.stay_angle - self.bell_angle
 
                 if abs(self.velocity) > self.stay_break_limit:
                     self.stay_hit = self.stay_hit + 1
-                    self.velocity = -0.5 * self.velocity
+                    #self.velocity = -0.5 * self.velocity
 
             # Update location of the clapper (using some physics which may well be dodgy)
             num = -phy.g * np.sin(self.clapper_angle) - self.p * (
@@ -194,14 +194,14 @@ class init_bell:
                 self.bell_angle = 2 * np.pi + 2 * self.stay_angle - self.bell_angle
                 if abs(self.velocity) > self.stay_break_limit:
                     self.stay_hit = self.stay_hit + 1
-                    self.velocity = -0.5 * self.velocity
+                    #self.velocity = -0.5 * self.velocity
 
             if self.bell_angle < -np.pi - self.stay_angle:
                 self.velocity = -0.7 * self.velocity
                 self.bell_angle = -2 * np.pi - 2 * self.stay_angle - self.bell_angle
                 if abs(self.velocity) > self.stay_break_limit:
                     self.stay_hit = self.stay_hit + 1
-                    self.velocity = -0.5 * self.velocity
+                    #self.velocity = -0.5 * self.velocity
 
             # Check if clapper needs to leave the bell
             num = -phy.g * np.sin(self.clapper_angle) - self.p * (
@@ -368,26 +368,51 @@ class init_bell:
         """Fitness function at a given time rather than evaulating after the fact"""
         """Must multiply by dt/tmax or equivalent"""
         mult = 60.0*phy.FPS
-        if True:  #RINGING DOWN
+        if False:  #RINGING DOWN
             if np.abs(self.bell_angle) > np.pi:
                 #Bell is over the balance
                 over_balance = True
             else:
                 over_balance = False
-        force_fraction = 0.1 #How much to care about the force applied at each stroke
-        alpha = 4  #Distance factor
-        if over_balance:
-            fitness_increment = 0.5*(1.0 - ((np.abs(self.bell_angle) - np.pi)/self.stay_angle))   #Encourage to ring to the balance
-        else:
-            downness = (1.0 - np.abs(self.bell_angle)/np.pi)**alpha
+            force_fraction = 0.1 #How much to care about the force applied at each stroke
+            alpha = 4  #Distance factor
+            if over_balance:
+                fitness_increment = 0.5*(1.0 - ((np.abs(self.bell_angle) - np.pi)/self.stay_angle))   #Encourage to ring to the balance
+            else:
+                downness = (1.0 - np.abs(self.bell_angle)/np.pi)**alpha
+                forceness = (1.0 - self.pull)**alpha
+                fitness_increment = force_fraction*forceness + (1.0 - force_fraction)*downness
+
+            fitness_increment = fitness_increment/(self.stay_hit + 1)
+
+            return fitness_increment/mult
+
+        else:   #RINGING UP
+            if self.bell_angle > np.pi:
+                up_handstroke = True
+            else:
+                up_handstroke = False
+            if self.bell_angle < -np.pi:
+                up_backstroke = True
+            else:
+                up_backstroke = False
+            force_fraction = 0.1 #How much to care about the force applied at each stroke
+            alpha = 4  #Distance factor
             forceness = (1.0 - self.pull)**alpha
-            fitness_increment = force_fraction*forceness + (1.0 - force_fraction)*downness
-
-        fitness_increment = fitness_increment/(self.stay_hit + 1)
-
-        return fitness_increment/mult
-
-
+            if self.bell_angle > 0.0:
+                side_factor = 1.
+            else:
+                side_factor = 0.75  #discourage lingering at backstroke. But not terribly so.
+            if up_handstroke:
+                fitness_increment = (1.0 - force_fraction) + forceness*force_fraction
+            elif up_backstroke:
+                fitness_increment = side_factor*((1.0 - force_fraction) + forceness*force_fraction)
+            else:
+                upness = side_factor*(np.abs(self.bell_angle)/np.pi)**alpha
+                fitness_increment = force_fraction*forceness + (1.0 - force_fraction)*upness
+            if self.stay_hit > 0:
+                fitness_increment = fitness_increment/(self.stay_hit + 1)
+            return fitness_increment/mult
 
 
 

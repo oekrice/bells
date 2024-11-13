@@ -30,18 +30,38 @@ def eval_genome(genome, config):
 
     for runs in range(runs_per_net):
         sim = run_bell()  # all the physics in here
-        if random.random() < 0.3:   #pick a random angle
-            sim.bell.bell_angle = uniform(-np.pi-sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
-            sim.bell.clapper_angle = sim.bell.bell_angle
-        else:
-            if random.random() < 0.5:   #important that it can get itself off at hand and back
-                sim.bell.bell_angle = uniform(np.pi+0.95*sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
-                sim.bell.clapper_angle = sim.bell.bell_angle + sim.bell.clapper_limit - 0.01
-            else:
-                sim.bell.bell_angle = uniform(-np.pi-0.95*sim.bell.stay_angle, -np.pi-sim.bell.stay_angle)
-                sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
 
-        sim.bell.velocity = 0.0
+        if False:   #initial conditions for ringing down
+            if random.random() < 0.3:   #pick a random angle
+                sim.bell.bell_angle = uniform(-np.pi-sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
+                sim.bell.clapper_angle = sim.bell.bell_angle
+            else:
+                if random.random() < 0.5:   #important that it can get itself off at hand and back
+                    sim.bell.bell_angle = uniform(np.pi+0.95*sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
+                    sim.bell.clapper_angle = sim.bell.bell_angle + sim.bell.clapper_limit - 0.01
+                else:
+                    sim.bell.bell_angle = uniform(-np.pi-0.95*sim.bell.stay_angle, -np.pi-sim.bell.stay_angle)
+                    sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
+            sim.bell.velocity = 0.0
+
+        else:   #Initial conditions for ringing up. Aiming for HANDSTROKE.
+            #Pretty certain to get an eventuality if chance is above 0.35
+            if random.random() < 0.75:  #Bell is randomly distributed
+                sim.bell.bell_angle = uniform(-np.pi-sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
+                sim.bell.clapper_angle = sim.bell.bell_angle
+                xd = sim.bell.stay_angle/(np.pi)
+                yd = np.sqrt(1.0 - xd**2)
+                sim.bell.velocity = uniform(-7.5*np.sqrt(yd),7.5*np.sqrt(yd))
+            else:
+                if random.random() < 0.2:   #Bell is up on the wrong stroke
+                    sim.bell.bell_angle = uniform(-np.pi-0.95*sim.bell.stay_angle, -np.pi-sim.bell.stay_angle)
+                    sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
+                    sim.bell.velocity = 0.0
+                else:   #Bell is completely down
+                    sim.bell.bell_angle = 0.0
+                    sim.bell.clapper_angle = sim.bell.bell_angle
+                    sim.bell.velocity = 0.0
+
 
         # Run the given simulation for up to num_steps time steps.
         fitness = 0.0

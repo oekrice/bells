@@ -40,36 +40,50 @@ for genome_test_number in range(ngenomes):
 
     genome_success = 0.
 
-    for check in range(2):
+    for check in range(1):
         sim = run_bell()
 
-        if check == 0:
-            sim.bell.bell_angle = uniform(np.pi+1.0*sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
-            sim.bell.clapper_angle = sim.bell.bell_angle + sim.bell.clapper_limit - 0.01
+        if False:
+            if check == 0:
+                sim.bell.bell_angle = uniform(np.pi+1.0*sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
+                sim.bell.clapper_angle = sim.bell.bell_angle + sim.bell.clapper_limit - 0.01
+            else:
+                sim.bell.bell_angle = uniform(-np.pi-1.0*sim.bell.stay_angle, -np.pi-sim.bell.stay_angle)
+                sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
+
+            sim.bell.velocity = 0.0
         else:
-            sim.bell.bell_angle = uniform(-np.pi-1.0*sim.bell.stay_angle, -np.pi-sim.bell.stay_angle)
-            sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
-
-        sim.bell.velocity = 0.0
-
+            if check == 0:
+                sim.bell.bell_angle = 0.0
+                sim.bell.clapper_angle = 0.0
+            else:
+                sim.bell.bell_angle = uniform(-np.pi-1.0*sim.bell.stay_angle, -np.pi-sim.bell.stay_angle)
+                sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
 
         fitness = 0
-        while sim.phy.time < 60.0:
+        up_time = 120.0
+
+        while sim.phy.time < up_time:
             inputs = sim.get_scaled_state()
             action = net.activate(inputs)
             force = continuous_actuator_force(action)
             sim.step(force)
             fitness = fitness + sim.bell.fitness_increment(sim.phy)
+            if sim.bell.bell_angle > np.pi and abs(sim.bell.velocity) < 0.1:
+                up_time = min(up_time, sim.phy.time)
 
-        genome_success += abs(sim.bell.bell_angle) + abs(sim.bell.velocity)
+        if False:   #Down
+            genome_success += abs(sim.bell.bell_angle) + abs(sim.bell.velocity)
+        else:   #Up
+            genome_success = up_time
 
-    print('Genome', genome_test_number, genome_success)
+    print('Genome', genome_test_number, genome_success,  fitness, sim.bell.bell_angle, sim.bell.clapper_angle - sim.bell.bell_angle)
     successes.append(genome_success)
 
 plt.plot(np.arange(len(successes)), successes)
 plt.xlabel('Generation')
-plt.ylabel('Downness')
-plt.yscale('log')
+plt.ylabel('Time to up')
+#plt.yscale('log')
 plt.show()
 
 

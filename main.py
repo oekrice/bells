@@ -45,6 +45,13 @@ else:
         bell.bell_angle = uniform(-np.pi-0.95*bell.stay_angle, -np.pi-bell.stay_angle)
         bell.clapper_angle = bell.bell_angle - bell.clapper_limit + 0.01
 
+if True:
+    bell.bell_angle = 0.0
+    bell.clapper_angle = 0.0
+
+#bell.bell_angle = uniform(np.pi+0.95*bell.stay_angle, np.pi+bell.stay_angle)
+#bell.clapper_angle = bell.bell_angle + bell.clapper_limit - 0.01
+
 dp = display_tools(phy, bell)
 
 bell.sound = pygame.mixer.Sound("bellsound_deep.wav")
@@ -70,7 +77,7 @@ class Networks:
             down = pickle.load(f)
         self.down = neat.nn.FeedForwardNetwork.create(down, config)
 
-if False:
+if True:
     #Find current best ringing up
     if load_num < 0:
         os.system('scp current_best ./networks/ring_up')
@@ -78,7 +85,6 @@ if False:
         os.system('scp ./current_network/%d ./networks/ring_up' % load_num)
 
 nets = Networks()
-
 
 async def main():
 
@@ -88,6 +94,7 @@ async def main():
     count = 0
     ring_up = False
     ring_down = False
+    fitness = 0
 
     while True:  # the main game loop
 
@@ -141,7 +148,7 @@ async def main():
         # Check for force on wheel - this takes effect at the next timestep
 
         mouse = pygame.mouse.get_pos()  # use to activate things
-
+        fitness = fitness + bell.fitness_increment(phy)
         # Check for actions or stay smash. All needs to be in the same event.get for some reason.
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
