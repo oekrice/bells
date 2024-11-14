@@ -34,11 +34,12 @@ pygame.init()
 
 phy = init_physics()
 bell = init_bell(phy, 0.0)
+
 if random.random() < 0.0:  # pick a random angle
     bell.bell_angle = uniform(-np.pi - bell.stay_angle, np.pi + bell.stay_angle)
     bell.clapper_angle = bell.bell_angle
 else:
-    if random.random() < 0.5:  # important that it can get itself off at hand and back
+    if random.random() < 0.0:  # important that it can get itself off at hand and back
         bell.bell_angle = uniform(np.pi + 0.95 * bell.stay_angle, np.pi + bell.stay_angle)
         bell.clapper_angle = bell.bell_angle + bell.clapper_limit - 0.01
     else:
@@ -119,6 +120,9 @@ async def main():
             action = nets.down.activate(inputs)
             force = min(1.0, force + action[0])
 
+        if bell.stay_hit > 0:
+            force = 0.0
+
         if bell.effect_force < 0.0:  # Can pull the entire handstroke
             bell.wheel_force = force * bell.effect_force * wheel_force
         else:  # Can only pull some of the backstroke
@@ -143,7 +147,7 @@ async def main():
 
                 dp.display_state(phy, ring_up, ring_down)
 
-                dp.display_force(phy, bell.wheel_force)
+                dp.display_force(phy, bell, bell.wheel_force)
 
             dp.draw_bell(phy, bell)
 
@@ -179,6 +183,18 @@ async def main():
                     # left button
                     ring_down = not (ring_down)
                     ring_up = False
+
+            if event.type == 1025:
+                if bell.stay_hit > 0:
+                    if mouse[1] > 0.8 * phy.pixels_y:
+                        bell.bell_angle = 0.0
+                        bell.clapper_angle = 0.0
+                        bell.velocity = 0.0
+                        bell.clapper_velocity = 0.0
+                        bell.stay_hit = 0
+                        bell.prev_angle = 0.0
+                        bell.max_length = 0.0  # max backstroke length
+                        bell.stay_angle = 0.15
 
             if event.type == QUIT:
                 pygame.quit()

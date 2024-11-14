@@ -70,15 +70,19 @@ class display_tools:
 
         self.surface.blit(textSurfaceObj, textRectObj)
 
-    def display_force(self, phy, force):
+    def display_force(self, phy, bell, force):
         # Display 'handstroke' or 'backstroke'
         fontObj = pygame.font.Font(pygame.font.match_font("arial"), 16)
-        textSurfaceObj = fontObj.render("Force on wheel = %03d" % force, True, self.BLACK, self.WHITE)
-        textRectObj = textSurfaceObj.get_rect()
-        textRectObj.center = (0.5 * phy.pixels_x, 0.9 * phy.pixels_y)
-        self.surface.blit(textSurfaceObj, textRectObj)
-
-        self.surface.blit(textSurfaceObj, textRectObj)
+        if bell.stay_hit == 0:
+            textSurfaceObj = fontObj.render("Force on wheel = %03d" % force, True, self.BLACK, self.WHITE)
+            textRectObj = textSurfaceObj.get_rect()
+            textRectObj.center = (0.5 * phy.pixels_x, 0.9 * phy.pixels_y)
+            self.surface.blit(textSurfaceObj, textRectObj)
+        else:
+            textSurfaceObj = fontObj.render("Stay Broken. Click to reset.", True, self.BLACK, self.WHITE)
+            textRectObj = textSurfaceObj.get_rect()
+            textRectObj.center = (0.5 * phy.pixels_x, 0.9 * phy.pixels_y)
+            self.surface.blit(textSurfaceObj, textRectObj)
 
     def draw_bell(self, phy, bell):
         # Roate the bell image and paste
