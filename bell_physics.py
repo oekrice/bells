@@ -250,6 +250,9 @@ class init_bell:
                 # Update clapper angle
                 self.clapper_angle = self.clapper_angle + self.clapper_velocity * phy.dt
 
+        #Check if stay is broken
+        if self.stay_hit > 0:
+            self.stay_angle = 1e6
         # Check if bell has struck
         if self.clapper_angle - self.bell_angle < -self.clapper_limit:
             if self.ding_reset:
@@ -329,7 +332,7 @@ class init_bell:
     def get_scaled_state(self):
         """Get full system state, scaled into [0,1]."""
         """Angle then velocity (obviously veclocity can be large)"""
-        return [self.bell_angle / (np.pi + self.stay_angle), self.velocity / (10.0)]
+        return [self.bell_angle / (np.pi + self.stay_angle), self.velocity / (10.0), self.m_1/1000]
 
     def fitness_fn(self):
         """Define fitness function, only of variables of 'self'"""
@@ -371,24 +374,47 @@ class init_bell:
     def fitness_increment(self, phy):
         """Fitness function at a given time rather than evaulating after the fact"""
         """Must multiply by dt/tmax or equivalent"""
-        mult = 60.0 * phy.FPS
-        if True:  # RINGING DOWN
+        mult = 60.0*phy.FPS
+        if False:  #RINGING DOWN
             if np.abs(self.bell_angle) > np.pi:
-                # Bell is over the balance
+                #Bell is over the balance
                 over_balance = True
             else:
                 over_balance = False
-        force_fraction = 0.1  # How much to care about the force applied at each stroke
-        alpha = 4  # Distance factor
-        if over_balance:
-            fitness_increment = 0.5 * (
-                1.0 - ((np.abs(self.bell_angle) - np.pi) / self.stay_angle)
-            )  # Encourage to ring to the balance
-        else:
-            downness = (1.0 - np.abs(self.bell_angle) / np.pi) ** alpha
-            forceness = (1.0 - self.pull) ** alpha
-            fitness_increment = force_fraction * forceness + (1.0 - force_fraction) * downness
+            force_fraction = 0.1 #How much to care about the force applied at each stroke
+            alpha = 4  #Distance factor
+            if over_balance:
+                fitness_increment = 0.5*(1.0 - ((np.abs(self.bell_angle) - np.pi)/self.stay_angle))   #Encourage to ring to the balance
+            else:
+                downness = (1.0 - np.abs(self.bell_angle)/np.pi)**alpha
+                forceness = (1.0 - self.pull)**alpha
+                fitness_increment = force_fraction*forceness + (1.0 - force_fraction)*downness
 
-        fitness_increment = fitness_increment / (self.stay_hit + 1)
+            fitness_increment = fitness_increment/(self.stay_hit + 1)
 
-        return fitness_increment / mult
+            return fitness_increment/mult
+
+        else:   #RINGING UP
+            if self.bell_angle > np.pi and self.stay_hit == 0:
+                up_handstroke = True
+            else:
+                up_handstroke = False
+            if self.bell_angle < -np.pi and self.stay_hit == 0:
+                up_backstroke = True
+            else:
+                up_backstroke = False
+            force_fraction = 0.1 #How much to care about the force applied at each stroke
+            alpha = 4  #Distance factor
+            forceness = (1.0 - self.pull)**alpha
+            if self.bell_angle > 0.0:
+                side_factor = 0.8
+            else:
+                side_factor = 0.7  #discourage lingering at backstroke. But not terribly so.
+            if up_handstroke:
+                fitness_increment = 1.0*((1.0 - force_fraction) + forceness*force_fraction)
+            elif up_backstroke:
+                fitness_increment = 0.5*((1.0 - force_fraction) + forceness*force_fraction)
+            else:
+                upness = side_factor*(np.abs(self.bell_angle%np.pi)/np.pi)**alpha
+                fitness_increment = force_fraction*forceness + (1.0 - force_fraction)*upness
+            return fitness_increment/mult
