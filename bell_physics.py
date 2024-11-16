@@ -374,10 +374,10 @@ class init_bell:
     def fitness_increment(self, phy):
         """Fitness function at a given time rather than evaulating after the fact"""
         """Must multiply by dt/tmax or equivalent"""
-        mult = 60.0*phy.FPS
-        if False:  #RINGING DOWN
+        mult = 60.0 * phy.FPS
+        if False:  # RINGING DOWN
             if np.abs(self.bell_angle) > np.pi:
-                #Bell is over the balance
+                # Bell is over the balance
                 over_balance = True
             else:
                 over_balance = False

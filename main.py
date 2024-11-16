@@ -87,6 +87,12 @@ if True:
         os.system("scp current_best ./networks/ring_up")
     else:
         os.system("scp ./current_network/%d ./networks/ring_up" % load_num)
+if False:
+    # Find current best ringing up
+    if load_num < 0:
+        os.system("scp current_best ./networks/ring_down")
+    else:
+        os.system("scp ./current_network/%d ./networks/ring_down" % load_num)
 
 nets = Networks()
 
