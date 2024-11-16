@@ -51,14 +51,21 @@ sim = run_bell()
 # Run the given simulation for up to 120 seconds.
 
 sim.bell.m_1 = uniform(200,500)
+sim.bell.m_1 = 350
+sim.bell.m_2 = 0.05*sim.bell.m_1
+
+
 sim.bell.bell_angle = uniform(-np.pi-sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
 sim.bell.clapper_angle = sim.bell.bell_angle*1.05
 xd = sim.bell.bell_angle/(np.pi)
 if abs(xd) > 1:
     sim.bell.velocity = 0.0
 else:
-    yd = np.sqrt(1.0 - xd**2)
-    sim.bell.velocity = uniform(-7.5*np.sqrt(yd),7.5*np.sqrt(yd))
+    yd = np.sqrt(1.0 - abs(xd))
+    sim.bell.velocity = uniform(-5.0*yd,5.0*yd)
+
+
+sim.bell.clapper_velocity = sim.bell.velocity
 
 angles_log = [sim.bell.bell_angle]
 velocities_log = [sim.bell.velocity]
@@ -67,6 +74,7 @@ print()
 print("Initial conditions:")
 print("    angle = {0:.4f}".format(sim.bell.bell_angle))
 print(" velocity = {0:.4f}".format(sim.bell.velocity))
+print(" bell mass = {0:.4f}".format(sim.bell.m_1))
 
 fitness = 0
 while sim.phy.time < 60.0:
@@ -121,7 +129,7 @@ def plot_forces():
     plt.plot(angles_log, velocities_log, c= 'white')
     plt.title('Generation %d, Fitness = %.3f' % (load_num, c.fitness))
     plt.savefig('network_graphs/%04d.png' % load_num)
-    plt.show()
+    plt.close()
 
 plot_forces()
 

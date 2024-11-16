@@ -415,6 +415,7 @@ class init_bell:
             elif up_backstroke:
                 fitness_increment = 0.5*((1.0 - force_fraction) + forceness*force_fraction)
             else:
-                upness = side_factor*(np.abs(self.bell_angle%np.pi)/np.pi)**alpha
+                upcos = 0.5 - 0.5*np.cos(self.bell_angle)
+                upness = side_factor*(upcos)**alpha
                 fitness_increment = force_fraction*forceness + (1.0 - force_fraction)*upness
             return fitness_increment/mult

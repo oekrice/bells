@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 successes = []; genomes = []
-ngenomes = 10
+ngenomes = 2000
 for genome_test_number in range(ngenomes):
     load_num = genome_test_number
 
