@@ -48,6 +48,14 @@ else:
 
 bell.bell_angle = 0.0
 bell.clapper_angle = 0.0
+<<<<<<< HEAD
+bell.m_1 = uniform(200,500)
+
+bell.m_2 = 0.05*bell.m_1
+
+print('Bell mass', bell.m_1)
+=======
+>>>>>>> f103c9f68a4b334903e65aa22fb883cd17f449f1
 
 dp = display_tools(phy, bell)
 
@@ -76,12 +84,21 @@ class Networks:
         self.down = neat.nn.FeedForwardNetwork.create(down, config)
 
 
+<<<<<<< HEAD
+if True:
+    # Find current best ringing up
+    if load_num < 0:
+        os.system("scp current_best ./networks/ring_up")
+    else:
+        os.system("scp ./current_network/%d ./networks/ring_up" % load_num)
+=======
 if False:
     # Find current best ringing up
     if load_num < 0:
         os.system("scp current_best ./networks/ring_down")
     else:
         os.system("scp ./current_network/%d ./networks/ring_down" % load_num)
+>>>>>>> f103c9f68a4b334903e65aa22fb883cd17f449f1
 
 nets = Networks()
 
