@@ -16,7 +16,7 @@ import random
 
 runs_per_net = 25
 simulation_seconds = 60.0
-ngenerations = 1000
+ngenerations = 10000
 
 for i in range(0,1000):
     if os.path.isfile('./current_network/%d' % i):
@@ -44,16 +44,21 @@ def eval_genome(genome, config):
                     sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
             sim.bell.velocity = 0.0
 
-        else:   #Initial conditions for ringing up. Aiming for HANDSTROKE.
+        elif True:   #Initial conditions for ringing up. Aiming for HANDSTROKE.
             #Pretty certain to get an eventuality if chance is above 0.35
-            if random.random() < 0.75:  #Bell is randomly distributed
+            sim.bell.m_1 = uniform(150,550)
+            sim.bell.m_2 = 0.05*sim.bell.m_1
+            if runs < int(runs_per_net/2):
                 sim.bell.bell_angle = uniform(-np.pi-sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
-                sim.bell.clapper_angle = sim.bell.bell_angle
-                xd = sim.bell.stay_angle/(np.pi)
-                yd = np.sqrt(1.0 - xd**2)
-                sim.bell.velocity = uniform(-7.5*np.sqrt(yd),7.5*np.sqrt(yd))
+                sim.bell.clapper_angle = sim.bell.bell_angle*1.05
+                xd = sim.bell.bell_angle/(np.pi)
+                if abs(xd) > 1:
+                    sim.bell.velocity = 0.0
+                else:
+                    yd = abs(1.0 - abs(xd))
+                    sim.bell.velocity = uniform(-5.0*yd,5.0*yd)
             else:
-                if random.random() < 0.2:   #Bell is up on the wrong stroke
+                if runs < int(runs_per_net/10):   #Bell is up on the wrong stroke
                     sim.bell.bell_angle = uniform(-np.pi-0.95*sim.bell.stay_angle, -np.pi-sim.bell.stay_angle)
                     sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
                     sim.bell.velocity = 0.0
@@ -61,7 +66,19 @@ def eval_genome(genome, config):
                     sim.bell.bell_angle = 0.0
                     sim.bell.clapper_angle = sim.bell.bell_angle
                     sim.bell.velocity = 0.0
+            sim.bell.clapper_velocity = sim.bell.velocity
 
+        else:   #More general conditions for the averaged approach. Bell can appear anywhere and at any velocity within the envelope.
+            sim.bell.m_1 = uniform(200,500)
+            sim.bell.m_2 = 0.05*sim.bell.m_1
+            sim.bell.bell_angle = uniform(-np.pi-sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
+            sim.bell.clapper_angle = sim.bell.bell_angle*1.05
+            xd = sim.bell.bell_angle/(np.pi)
+            if abs(xd) > 1:
+                sim.bell.velocity = 0.0
+            else:
+                yd = (1.0 - abs(xd))
+                sim.bell.velocity = uniform(-5.0*yd,5.0*yd)
 
         # Run the given simulation for up to num_steps time steps.
         fitness = 0.0
@@ -79,8 +96,8 @@ def eval_genome(genome, config):
             fitness = fitness + sim.bell.fitness_increment(sim.phy)
         #fitness = sim.bell.fitness_fn()
         fitnesses.append(fitness)
-    # The genome's fitness is its worst performance across all runs.
-    return min(fitnesses)
+    # The genome's fitness is now its average.
+    return np.sum(fitnesses)/len(fitnesses)
 
 
 def eval_genomes(genomes, config):

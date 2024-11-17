@@ -50,25 +50,27 @@ net = neat.nn.FeedForwardNetwork.create(c, config)
 sim = run_bell()
 # Run the given simulation for up to 120 seconds.
 
-if random.random() < 0.0:   #pick a random angle
-    sim.bell.bell_angle = uniform(-np.pi-sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
-    sim.bell.clapper_angle = sim.bell.bell_angle
+sim.bell.m_1 = uniform(200,500)
+sim.bell.m_1 = 350
+sim.bell.m_2 = 0.05*sim.bell.m_1
+
+
+sim.bell.bell_angle = uniform(-np.pi-sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
+sim.bell.bell_angle = 0.0#uniform(-np.pi-sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
+
+sim.bell.clapper_angle = sim.bell.bell_angle*1.05
+
+
+xd = sim.bell.bell_angle/(np.pi)
+if abs(xd) > 1:
+    sim.bell.velocity = 0.0
 else:
-    if random.random() < 0.5:   #important that it can get itself off at hand and back
-        sim.bell.bell_angle = uniform(np.pi+0.95*sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
-        sim.bell.clapper_angle = sim.bell.bell_angle + sim.bell.clapper_limit - 0.01
-    else:
-        sim.bell.bell_angle = uniform(-np.pi-0.95*sim.bell.stay_angle, -np.pi-sim.bell.stay_angle)
-        sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
+    yd = np.sqrt(1.0 - abs(xd))
+    sim.bell.velocity = uniform(-5.0*yd,5.0*yd)
 
 sim.bell.velocity = 0.0
 
-if random.random() < 1.0:
-    sim.bell.bell_angle = 0.0
-    sim.bell.clapper_angle = 0.0
-else:
-    sim.bell.bell_angle = uniform(-np.pi-0.95*sim.bell.stay_angle, -np.pi-sim.bell.stay_angle)
-    sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
+sim.bell.clapper_velocity = sim.bell.velocity
 
 angles_log = [sim.bell.bell_angle]
 velocities_log = [sim.bell.velocity]
@@ -77,6 +79,7 @@ print()
 print("Initial conditions:")
 print("    angle = {0:.4f}".format(sim.bell.bell_angle))
 print(" velocity = {0:.4f}".format(sim.bell.velocity))
+print(" bell mass = {0:.4f}".format(sim.bell.m_1))
 
 fitness = 0
 while sim.phy.time < 60.0:
@@ -116,17 +119,18 @@ maxvel = np.max(np.abs(velocities_log))
 
 def plot_forces():
     #Does a colourmap of the forces based on the input states
-    angles = np.linspace(-np.pi-sim.bell.stay_angle, np.pi+sim.bell.stay_angle, 250)
+    angles = np.linspace(-np.pi-0.15, np.pi+0.15, 250)
     velocities = np.linspace(-10.0, 10.0, 300)
     mat = np.zeros((len(angles), len(velocities)))
     for i, angle in enumerate(angles):
         for j, velocity in enumerate(velocities):
-            mat[i,j] = net.activate([angle / (np.pi + sim.bell.stay_angle), velocity / (10.0)])[0]
+            mat[i,j] = net.activate([angle / (np.pi + sim.bell.stay_angle), velocity / (10.0),sim.bell.m_1/1000])[0]
     plt.xlabel('Bell angle')
     plt.ylabel('Bell velocity')
     im = plt.pcolormesh(angles, velocities, mat.T, vmin = 0.0, vmax = 1.0, cmap = 'plasma')
     plt.contour(angles, velocities, mat.T, np.linspace(0.0,1.0,11), colors = 'black')
     plt.colorbar(im, label = 'Force')
+    plt.xlim(-np.pi-0.15, np.pi+0.15)
     plt.plot(angles_log, velocities_log, c= 'white')
     plt.title('Generation %d, Fitness = %.3f' % (load_num, c.fitness))
     plt.savefig('network_graphs/%04d.png' % load_num)

@@ -33,6 +33,9 @@ class run_bell(object):
                 self.bell.wheel_force = force*self.bell.effect_force*self.wheel_force
             else:
                 self.bell.wheel_force = force*0.0
+        if self.bell.stay_hit > 0:
+            self.bell.wheel_force = 0.0
+            self.stay_angle = 1e6
         self.pull = force
         # Does a single timestep on the stuff in the bell class
         self.bell.timestep(self.phy)
