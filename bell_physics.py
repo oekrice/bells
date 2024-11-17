@@ -109,9 +109,22 @@ class init_bell:
         self.stay_hit = 0
         self.pull = 0.0
 
+        self.all_handstrokes = [-10]   #Timing of the respective strokes, in seconds
+        self.all_backstrokes = [-10]
+        self.last_handstroke = 10   #time since last ring
+        self.last_backstroke = 10
+        self.target_period = 4   #Target time between sucessive stokre
+        self.handstroke_accuracy = []   #Difference in the target times overall (for the fitness fn)
+        self.backstroke_accuracy = []
+        self.handstroke_target = -10.0
+        self.backstroke_target = -10.0
+
+
     def timestep(self, phy):
         # Do the timestep here, using only bell.force, which comes either from an input or the machine
         # Update the physics here
+        self.time_targets(phy)
+
         if not self.onedge:  # CLAPPER IS NOT RESTING ON THE EDGE OF THE BELL
 
             # Acceleration due to gravity
@@ -262,6 +275,7 @@ class init_bell:
             self.velocity = avg_velocity
             self.clapper_angle = -self.clapper_limit + self.bell_angle
             self.onedge = True
+
         elif self.clapper_angle - self.bell_angle > self.clapper_limit:
             if self.ding_reset:
                 self.volume_ref = 0.2 * abs(self.clapper_velocity - self.velocity)
@@ -272,7 +286,17 @@ class init_bell:
             self.onedge = True
         else:
             self.onedge = False
+
         if self.onedge and self.ding_reset:
+            #This is the strike time
+            if phy.time > 0.1:
+                if self.clapper_angle > 0:
+                    self.all_handstrokes.append(phy.time)
+                    self.handstroke_accuracy.append(self.handstroke_target)
+                else:
+                    self.all_backstrokes.append(phy.time)
+                    self.backstroke_accuracy.append(self.backstroke_target)
+
             if phy.do_volume:
                 if self.sound.get_volume() < self.volume_ref:
                     self.sound.set_volume(self.volume_ref)
@@ -298,10 +322,23 @@ class init_bell:
             if self.effect_force > 0.0 and self.rlengths[-1] < self.rlengths[-2] and self.rlengths[-2] > self.rlengths[-3]:
                 self.max_length = self.rlengths[-1]
 
+        #Update stiking information
+        self.last_backstroke = phy.time - self.all_backstrokes[-1]
+        self.last_handstroke = phy.time - self.all_handstrokes[-1]
         phy.time = phy.time + phy.dt
         self.times.append(phy.time)
         self.bell_angles.append(self.bell_angle)
-        self.forces.append(self.wheel_force)
+        self.forces.append(self.pull)
+
+    def time_targets(self, phy):
+        #Target ringing times, which can depend on the previous strike times.
+        #Should not be negative for the inputs but can be here
+        if False:  #Target is based on previous same stroke
+            self.backstroke_target = self.all_backstrokes[-1] + self.target_period - phy.time
+            self.handstroke_target = self.all_handstrokes[-1] + self.target_period - phy.time
+        else:
+            self.backstroke_target = self.all_handstrokes[-1] + 0.5*self.target_period - phy.time
+            self.handstroke_target = self.all_backstrokes[-1] + 0.5*self.target_period - phy.time
 
     def ropelength(self):
         # Outputs the length of the rope above the garter hole, relative to the minimum.
@@ -332,44 +369,34 @@ class init_bell:
     def get_scaled_state(self):
         """Get full system state, scaled into [0,1]."""
         """Angle then velocity (obviously veclocity can be large)"""
-        return [self.bell_angle / (np.pi + self.stay_angle), self.velocity / (10.0), self.m_1/1000]
+        bt = max(self.backstroke_target/10.0,0)   #Time until desired stroke
+        ht = max(self.handstroke_target/10.0,0)
+        pb = self.last_backstroke/10.0     #Time since last stroke
+        ph = self.last_handstroke/10.0
+
+        return [self.bell_angle / (np.pi + self.stay_angle), self.velocity / (10.0), self.m_1/1000, bt, ht, pb, ph]
 
     def fitness_fn(self):
-        """Define fitness function, only of variables of 'self'"""
-        if False:  # RINGING UP WITHOUT STAY HITS
-            angle_aim = np.pi
-            absangles = np.array(np.abs(self.bell_angles))
-            max_travel = np.pi + self.stay_angle
-            return np.sum((max_travel - np.abs(angle_aim - absangles)) ** 2 / max_travel**2) / len(np.array(self.bell_angles))
-        if False:  # RINGING UP WITH STAY HITS
-            angle_aim = np.pi
-            absangles = np.array(np.abs(self.bell_angles))
-            max_travel = np.pi + self.stay_angle
+        #Evaulate overall performance based on accuracies
+        alpha = 2
+        force_fraction = 0.25
+        worst_time = 2.5 #If out by more than 2.5 it's not worth thinking about
+        overall_forces = np.sum(np.array(self.forces))/len(self.forces)
 
-            return np.sum(np.array(self.bell_angles) ** 2 / np.pi**2) / len(np.array(self.bell_angles)) / (self.stay_hit + 1)
+        handstrokes = 0
+        if len(self.handstroke_accuracy) > 1:
+            for h in range(len(self.handstroke_accuracy)-1):
+                handstrokes += (max(0.0, (worst_time - abs(self.handstroke_accuracy[h+1]))/worst_time)**alpha)
+            handstrokes = handstrokes/(len(self.handstroke_accuracy)-1)
 
-        if False:  # RINGING DOWN
-            angle_aim = 0.0
-            absangles = np.abs((np.pi + self.stay_angle) - np.array(np.abs(self.bell_angles)))
+        backstrokes = 0
+        if len(self.backstroke_accuracy) > 1:
+            for b in range(len(self.backstroke_accuracy)-1):
+                backstrokes += (max(0.0, (worst_time - abs(self.backstroke_accuracy[b+1]))/worst_time)**alpha)
+            backstrokes = backstrokes/(len(self.backstroke_accuracy)-1)
 
-            max_angle = np.max(np.abs(self.bell_angles))
-            max_travel = np.pi + self.stay_angle
+        return force_fraction*(1.0-overall_forces)**alpha + 0.5*(1.0-force_fraction)*(handstrokes + backstrokes)
 
-            # Penalise for amount of time pulling?
-            forcetime = max(np.sum([np.array(self.forces) > 10]) / len(self.forces), 0.5)
-            alpha = 4
-            return np.sum(absangles**alpha / max_travel**alpha) / (len(np.array(self.bell_angles)) * (self.stay_hit + 1))
-
-        if True:  # RINGING UP WITH STAY HITS PENALISED
-            angle_aim = np.pi
-            absangles = np.array(np.abs(self.bell_angles))
-            max_travel = np.pi + self.stay_angle
-            alpha = 4
-            return (
-                np.sum(np.array(self.bell_angles) ** alpha / max_travel**alpha)
-                / len(np.array(self.bell_angles))
-                / (self.stay_hit + 1) ** 2
-            )
 
     def fitness_increment(self, phy):
         """Fitness function at a given time rather than evaulating after the fact"""

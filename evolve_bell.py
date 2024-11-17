@@ -16,7 +16,7 @@ import random
 
 runs_per_net = 25
 simulation_seconds = 60.0
-ngenerations = 10000
+ngenerations = 1000
 
 for i in range(0,1000):
     if os.path.isfile('./current_network/%d' % i):
@@ -44,7 +44,7 @@ def eval_genome(genome, config):
                     sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
             sim.bell.velocity = 0.0
 
-        elif True:   #Initial conditions for ringing up. Aiming for HANDSTROKE.
+        elif False:   #Initial conditions for ringing up. Aiming for HANDSTROKE.
             #Pretty certain to get an eventuality if chance is above 0.35
             sim.bell.m_1 = uniform(150,550)
             sim.bell.m_2 = 0.05*sim.bell.m_1
@@ -68,7 +68,7 @@ def eval_genome(genome, config):
                     sim.bell.velocity = 0.0
             sim.bell.clapper_velocity = sim.bell.velocity
 
-        else:   #More general conditions for the averaged approach. Bell can appear anywhere and at any velocity within the envelope.
+        elif False:   #More general conditions for the averaged approach. Bell can appear anywhere and at any velocity within the envelope.
             sim.bell.m_1 = uniform(200,500)
             sim.bell.m_2 = 0.05*sim.bell.m_1
             sim.bell.bell_angle = uniform(-np.pi-sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
@@ -80,6 +80,20 @@ def eval_genome(genome, config):
                 yd = (1.0 - abs(xd))
                 sim.bell.velocity = uniform(-5.0*yd,5.0*yd)
 
+        elif True:   #Conditions for general ringing. Start stood at each stroke I think, but might change that.
+            sim.bell.m_1 = uniform(150,550)
+            sim.bell.m_2 = 0.05*sim.bell.m_1
+            if runs < int(runs_per_net/2):
+                sim.bell.bell_angle = np.pi+sim.bell.stay_angle
+                sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
+            else:
+                sim.bell.bell_angle = -np.pi-sim.bell.stay_angle
+                sim.bell.clapper_angle = sim.bell.bell_angle + sim.bell.clapper_limit - 0.01
+            sim.bell.target_period = uniform(3,5.5)
+
+            sim.bell.m_1 = 500
+            sim.bell.m_2 = 0.05*sim.bell.m_1
+
         # Run the given simulation for up to num_steps time steps.
         fitness = 0.0
         while sim.phy.time < simulation_seconds:
@@ -90,11 +104,11 @@ def eval_genome(genome, config):
             action = net.activate(inputs)
             # Apply action to the simulated cart-pole
             force = continuous_actuator_force(action)
-
+            sim.bell.pull = force
             sim.step(force)
 
             fitness = fitness + sim.bell.fitness_increment(sim.phy)
-        #fitness = sim.bell.fitness_fn()
+        fitness = sim.bell.fitness_fn()
         fitnesses.append(fitness)
     # The genome's fitness is now its average.
     return np.sum(fitnesses)/len(fitnesses)

@@ -35,8 +35,8 @@ else:
     with open("./current_network/%d" % (load_num ), "rb") as f:
         c = pickle.load(f)
 
-print("Loaded genome:")
-print(c)
+#print("Loaded genome:")
+#print(c)
 
 # Load the config file, which is assumed to live in
 # the same directory as this script.
@@ -50,28 +50,24 @@ net = neat.nn.FeedForwardNetwork.create(c, config)
 sim = run_bell()
 # Run the given simulation for up to 120 seconds.
 
-sim.bell.m_1 = uniform(200,500)
-sim.bell.m_1 = 350
+sim.bell.m_1 = uniform(150,550)
 sim.bell.m_2 = 0.05*sim.bell.m_1
-
-
-sim.bell.bell_angle = uniform(-np.pi-sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
-sim.bell.bell_angle = 0.0#uniform(-np.pi-sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
-
-sim.bell.clapper_angle = sim.bell.bell_angle*1.05
-
-
-xd = sim.bell.bell_angle/(np.pi)
-if abs(xd) > 1:
-    sim.bell.velocity = 0.0
+if random.random() < 0.5:
+    sim.bell.bell_angle = np.pi+sim.bell.stay_angle
+    sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
 else:
-    yd = np.sqrt(1.0 - abs(xd))
-    sim.bell.velocity = uniform(-5.0*yd,5.0*yd)
+    sim.bell.bell_angle = -np.pi-sim.bell.stay_angle
+    sim.bell.clapper_angle = sim.bell.bell_angle + sim.bell.clapper_limit - 0.01
+sim.bell.target_period = uniform(3,5.5)
 
-sim.bell.velocity = 0.0
+sim.bell.bell_angle = np.pi-0.1
+sim.bell.clapper_angle = sim.bell.bell_angle + sim.bell.clapper_limit
 
-sim.bell.clapper_velocity = sim.bell.velocity
-
+sim.bell.m_1 = 500
+sim.bell.m_2 = 0.05*sim.bell.m_1
+sim.bell.target_period = uniform(3,5.5)
+sim.bell.target_period = 5
+print('Target period', sim.bell.target_period )
 angles_log = [sim.bell.bell_angle]
 velocities_log = [sim.bell.velocity]
 
@@ -92,13 +88,17 @@ while sim.phy.time < 60.0:
     #force = probably_actuator_force(action)
     #print(force, inputs)
     # Doesn't matter what you do with this as long as it's consistent.
+    sim.bell.pull = force
     sim.step(force)
     angles_log.append(sim.bell.bell_angle)
     velocities_log.append(sim.bell.velocity)
     fitness = fitness + sim.bell.fitness_increment(sim.phy)
     #print(sim.bell.fitness_increment(sim.phy)*60*60)
 
-#fitness = sim.bell.fitness_fn()
+print(sim.bell.handstroke_accuracy)
+print(sim.bell.backstroke_accuracy)
+#print(sim.bell.forces)
+fitness = sim.bell.fitness_fn()
 print("fitness", fitness)
 
 print()
@@ -121,20 +121,31 @@ def plot_forces():
     #Does a colourmap of the forces based on the input states
     angles = np.linspace(-np.pi-0.15, np.pi+0.15, 250)
     velocities = np.linspace(-10.0, 10.0, 300)
-    mat = np.zeros((len(angles), len(velocities)))
-    for i, angle in enumerate(angles):
-        for j, velocity in enumerate(velocities):
-            mat[i,j] = net.activate([angle / (np.pi + sim.bell.stay_angle), velocity / (10.0),sim.bell.m_1/1000])[0]
+    hs = []
+    for i in range(len(sim.bell.all_handstrokes)-1):
+        hs.append(int(sim.bell.all_handstrokes[i+1]*sim.phy.FPS))
+    bs = []
+    for i in range(len(sim.bell.all_backstrokes)-1):
+        bs.append(int(sim.bell.all_backstrokes[i+1]*sim.phy.FPS))
+
+    #mat = np.zeros((len(angles), len(velocities)))
+    #for i, angle in enumerate(angles):
+    #    for j, velocity in enumerate(velocities):
+    #        mat[i,j] = net.activate([angle / (np.pi + sim.bell.stay_angle), velocity / (10.0),sim.bell.m_1/1000])[0]
     plt.xlabel('Bell angle')
     plt.ylabel('Bell velocity')
-    im = plt.pcolormesh(angles, velocities, mat.T, vmin = 0.0, vmax = 1.0, cmap = 'plasma')
-    plt.contour(angles, velocities, mat.T, np.linspace(0.0,1.0,11), colors = 'black')
-    plt.colorbar(im, label = 'Force')
+    #im = plt.pcolormesh(angles, velocities, mat.T, vmin = 0.0, vmax = 1.0, cmap = 'plasma')
+    #plt.contour(angles, velocities, mat.T, np.linspace(0.0,1.0,11), colors = 'black')
+    #plt.colorbar(im, label = 'Force')
     plt.xlim(-np.pi-0.15, np.pi+0.15)
-    plt.plot(angles_log, velocities_log, c= 'white')
+    plt.plot(angles_log, velocities_log, c= 'black')
+
+    plt.scatter(np.array(angles_log)[np.array(hs, dtype='int')], np.array(velocities_log)[np.array(hs, dtype='int')], c = 'green',zorder= 10)
+    plt.scatter(np.array(angles_log)[np.array(bs, dtype='int')], np.array(velocities_log)[np.array(bs, dtype='int')], c = 'red', zorder= 10)
+
     plt.title('Generation %d, Fitness = %.3f' % (load_num, c.fitness))
     plt.savefig('network_graphs/%04d.png' % load_num)
-    plt.close()
+    plt.show()
 
 plot_forces()
 
