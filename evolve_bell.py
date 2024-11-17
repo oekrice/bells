@@ -16,7 +16,7 @@ import random
 
 runs_per_net = 25
 simulation_seconds = 60.0
-ngenerations = 2000
+ngenerations = 10000
 
 for i in range(0,1000):
     if os.path.isfile('./current_network/%d' % i):
@@ -46,19 +46,19 @@ def eval_genome(genome, config):
 
         elif True:   #Initial conditions for ringing up. Aiming for HANDSTROKE.
             #Pretty certain to get an eventuality if chance is above 0.35
-            sim.bell.m_1 = uniform(200,500)
+            sim.bell.m_1 = uniform(150,550)
             sim.bell.m_2 = 0.05*sim.bell.m_1
-            if random.random() < 0.5:  #Bell is randomly distributed
+            if runs < int(runs_per_net/2):
                 sim.bell.bell_angle = uniform(-np.pi-sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
                 sim.bell.clapper_angle = sim.bell.bell_angle*1.05
                 xd = sim.bell.bell_angle/(np.pi)
                 if abs(xd) > 1:
                     sim.bell.velocity = 0.0
                 else:
-                    yd = np.sqrt(1.0 - abs(xd))
+                    yd = abs(1.0 - abs(xd))
                     sim.bell.velocity = uniform(-5.0*yd,5.0*yd)
             else:
-                if random.random() < 0.2:   #Bell is up on the wrong stroke
+                if runs < int(runs_per_net/10):   #Bell is up on the wrong stroke
                     sim.bell.bell_angle = uniform(-np.pi-0.95*sim.bell.stay_angle, -np.pi-sim.bell.stay_angle)
                     sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
                     sim.bell.velocity = 0.0
@@ -77,7 +77,7 @@ def eval_genome(genome, config):
             if abs(xd) > 1:
                 sim.bell.velocity = 0.0
             else:
-                yd = np.sqrt(1.0 - abs(xd))
+                yd = (1.0 - abs(xd))
                 sim.bell.velocity = uniform(-5.0*yd,5.0*yd)
 
         # Run the given simulation for up to num_steps time steps.

@@ -49,7 +49,7 @@ else:
 bell.bell_angle = 0.0
 bell.clapper_angle = 0.0
 bell.m_1 = uniform(200,500)
-
+bell.m_1 = 500
 bell.m_2 = 0.05*bell.m_1
 
 print('Bell mass', bell.m_1)

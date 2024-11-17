@@ -56,7 +56,11 @@ sim.bell.m_2 = 0.05*sim.bell.m_1
 
 
 sim.bell.bell_angle = uniform(-np.pi-sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
+sim.bell.bell_angle = 0.0#uniform(-np.pi-sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
+
 sim.bell.clapper_angle = sim.bell.bell_angle*1.05
+
+
 xd = sim.bell.bell_angle/(np.pi)
 if abs(xd) > 1:
     sim.bell.velocity = 0.0
@@ -64,6 +68,7 @@ else:
     yd = np.sqrt(1.0 - abs(xd))
     sim.bell.velocity = uniform(-5.0*yd,5.0*yd)
 
+sim.bell.velocity = 0.0
 
 sim.bell.clapper_velocity = sim.bell.velocity
 
