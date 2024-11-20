@@ -109,15 +109,20 @@ class init_bell:
         self.stay_hit = 0
         self.pull = 0.0
 
-        self.all_handstrokes = [-10]   #Timing of the respective strokes, in seconds
+        self.all_handstrokes = [-10]   #Timing of the respective strokes, in seconds.
         self.all_backstrokes = [-10]
         self.last_handstroke = 10   #time since last ring
         self.last_backstroke = 10
-        self.target_period = 4   #Target time between sucessive stokre
+        self.target_period = 4   #Target time between sucessive strokes
+        self.nbells = 8 #Rhythm for handstroke gaps
         self.handstroke_accuracy = []   #Difference in the target times overall (for the fitness fn)
         self.backstroke_accuracy = []
         self.handstroke_target = -10.0
         self.backstroke_target = -10.0
+        self.update_rhythm = False
+
+        self.next_handstroke = self.target_period
+        self.next_backstroke = self.target_period/2
 
 
     def timestep(self, phy):
@@ -291,11 +296,21 @@ class init_bell:
             #This is the strike time
             if phy.time > 0.1:
                 if self.clapper_angle > 0:
+                    #print('Hand', phy.time, self.handstroke_target)
                     self.all_handstrokes.append(phy.time)
                     self.handstroke_accuracy.append(self.handstroke_target)
+                    #UPDATE RHYTHM ROUTINES
+                    if len(self.handstroke_accuracy) == 1 or self.update_rhythm:  #First handstroke -- establish rhythm
+                        self.next_handstroke, self.next_backstroke = self.establish_rhythm(phy.time)
+                        self.update_rhythm = False
+                    else:
+                        self.next_handstroke, self.next_backstroke = self.establish_rhythm(self.next_handstroke)
+                    #print('Targets', self.next_backstroke, self.next_handstroke)
                 else:
+                    #print('Back', phy.time, self.backstroke_target)
                     self.all_backstrokes.append(phy.time)
                     self.backstroke_accuracy.append(self.backstroke_target)
+
 
             if phy.do_volume:
                 if self.sound.get_volume() < self.volume_ref:
@@ -336,9 +351,12 @@ class init_bell:
         if False:  #Target is based on previous same stroke
             self.backstroke_target = self.all_backstrokes[-1] + self.target_period - phy.time
             self.handstroke_target = self.all_handstrokes[-1] + self.target_period - phy.time
-        else:
+        elif False:
             self.backstroke_target = self.all_handstrokes[-1] + 0.5*self.target_period - phy.time
             self.handstroke_target = self.all_backstrokes[-1] + 0.5*self.target_period - phy.time
+        else:  #Receive info from the rhythm function
+            self.backstroke_target = self.next_backstroke - phy.time
+            self.handstroke_target = self.next_handstroke - phy.time
 
     def ropelength(self):
         # Outputs the length of the rope above the garter hole, relative to the minimum.
@@ -376,18 +394,22 @@ class init_bell:
 
         return [self.bell_angle / (np.pi + self.stay_angle), self.velocity / (10.0), self.m_1/1000, bt, ht, pb, ph]
 
-    #def establish_rhythm(self, first_handstroke):
+    def establish_rhythm(self, reference_time):
         """Estalishes the desired times for each stroke"""
         """Outputs the TIMES that these should happen as a series of arrays"""
         """Need to be able to readjust while ringing I suppose (but not for training)"""
+        """Reference_time is the time of the previous first handstroke in the 'change'"""
+        belltimes = np.linspace(reference_time, reference_time + self.target_period, self.nbells*2+2)
+        #For steady rounds at the minute
+        next_handstroke = belltimes[-1];
+        next_backstroke = belltimes[self.nbells]
 
-
-
+        return next_handstroke, next_backstroke
 
     def fitness_fn(self):
         #Evaulate overall performance based on accuracies
         alpha = 2
-        force_fraction = 0.25
+        force_fraction = 0.1
         worst_time = 1.0 #If out by more than 2.5 it's not worth thinking about
         overall_forces = np.sum(np.array(self.forces))/len(self.forces)
 

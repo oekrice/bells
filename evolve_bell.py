@@ -84,12 +84,12 @@ def eval_genome(genome, config):
             sim.bell.m_1 = uniform(150,550)
             sim.bell.m_2 = 0.05*sim.bell.m_1
             if runs < int(runs_per_net/2):
-                sim.bell.bell_angle = np.pi-0.01
-                sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
-            else:
-                sim.bell.bell_angle = -np.pi+0.01
+                sim.bell.bell_angle = np.pi+0.01
                 sim.bell.clapper_angle = sim.bell.bell_angle + sim.bell.clapper_limit - 0.01
-            sim.bell.target_period = uniform(3,5.5)
+            else:
+                sim.bell.bell_angle = -np.pi-0.01
+                sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
+            sim.bell.target_period = uniform(4.0,5.4)
 
             sim.bell.m_1 = 500
             sim.bell.m_2 = 0.05*sim.bell.m_1

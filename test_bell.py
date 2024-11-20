@@ -53,20 +53,20 @@ sim = run_bell()
 sim.bell.m_1 = uniform(150,550)
 sim.bell.m_2 = 0.05*sim.bell.m_1
 if random.random() < 0.5:
-    sim.bell.bell_angle = np.pi+sim.bell.stay_angle
-    sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
-else:
-    sim.bell.bell_angle = -np.pi-sim.bell.stay_angle
+    sim.bell.bell_angle = np.pi+0.01
     sim.bell.clapper_angle = sim.bell.bell_angle + sim.bell.clapper_limit - 0.01
-sim.bell.target_period = uniform(3,5.5)
+else:
+    sim.bell.bell_angle = -np.pi-0.01
+    sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
 
-sim.bell.bell_angle = np.pi-0.1
-sim.bell.clapper_angle = sim.bell.bell_angle + sim.bell.clapper_limit
+sim.bell.bell_angle = np.pi-0.5
+sim.bell.target_period = uniform(4.0,5.4)
+
+sim.bell.target_period = 4
 
 sim.bell.m_1 = 500
 sim.bell.m_2 = 0.05*sim.bell.m_1
-sim.bell.target_period = uniform(3,5.5)
-sim.bell.target_period = 3
+
 print('Target period', sim.bell.target_period )
 angles_log = [sim.bell.bell_angle]
 velocities_log = [sim.bell.velocity]

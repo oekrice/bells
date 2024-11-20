@@ -57,13 +57,19 @@ bell.m_2 = 0.05*bell.m_1
 bell.m_1 = uniform(150,550)
 bell.m_1 = 500
 bell.m_2 = 0.05*bell.m_1
+
 if True:
     bell.bell_angle = uniform(-np.pi-0.95*bell.stay_angle, -np.pi-bell.stay_angle)
     bell.clapper_angle = bell.bell_angle - bell.clapper_limit + 0.01
 else:
     bell.bell_angle = uniform(np.pi+0.95*bell.stay_angle, np.pi+bell.stay_angle)
     bell.clapper_angle = bell.bell_angle + bell.clapper_limit - 0.01
+
+bell.bell_angle = np.pi + 0.01
+bell.clapper_angle = bell.bell_angle + bell.clapper_limit - 0.01
+
 bell.target_period = uniform(3,5.5)
+bell.target_period = 4.0
 
 print('Bell mass', bell.m_1)
 
@@ -216,14 +222,17 @@ async def main():
                     ring_steady = not (ring_steady)
                     ring_up = False
                     ring_down = False
+                    bell.update_rhythm = True
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_z:
                     bell.target_period = bell.target_period - 0.1
+                    bell.update_rhythm = True
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_c:
                     bell.target_period = bell.target_period + 0.1
+                    bell.update_rhythm = True
 
             if event.type == 1025:
                 if mouse[0] > 40 and mouse[0] < 110 and mouse[1] > 70 and mouse[1] < 90:
