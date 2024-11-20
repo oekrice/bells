@@ -77,14 +77,18 @@ class display_tools:
 
             self.surface.blit(textSurfaceObj, textRectObj)
 
-            if len(bell.all_handstrokes) > 2:
-                textSurfaceObj = fontObj.render("Current speed %.1f" % (bell.all_handstrokes[-1] - bell.all_handstrokes[-2]) , True, self.BLACK, self.WHITE)
+            if len(bell.all_handstrokes) > 2 and len(bell.all_backstrokes) > 2:
+                if bell.all_handstrokes[-1] > bell.all_backstrokes[-1]:
+                    speed = bell.all_handstrokes[-1] - bell.all_backstrokes[-1]
+                    speed = bell.all_handstrokes[-1] - bell.all_handstrokes[-2]
+                else:
+                    speed = bell.all_backstrokes[-1] - bell.all_handstrokes[-1]
+                    speed = bell.all_backstrokes[-1] - bell.all_backstrokes[-2]
+                textSurfaceObj = fontObj.render("Current speed %.1f" % (speed) , True, self.BLACK, self.WHITE)
                 textRectObj = textSurfaceObj.get_rect()
                 textRectObj.center = (0.5 * phy.pixels_x, 0.1 * phy.pixels_y)
 
                 self.surface.blit(textSurfaceObj, textRectObj)
-
-
 
     def display_force(self, phy, bell, force):
         # Display 'handstroke' or 'backstroke'

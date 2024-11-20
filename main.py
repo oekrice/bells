@@ -55,7 +55,7 @@ bell.m_1 = 400
 bell.m_2 = 0.05*bell.m_1
 
 bell.m_1 = uniform(150,550)
-bell.m_1 = 400
+bell.m_1 = 500
 bell.m_2 = 0.05*bell.m_1
 if True:
     bell.bell_angle = uniform(-np.pi-0.95*bell.stay_angle, -np.pi-bell.stay_angle)
@@ -93,8 +93,9 @@ class Networks:
             down = pickle.load(f)
         self.down = neat.nn.FeedForwardNetwork.create(down, config)
         with open("networks/ring_steady", "rb") as f:
-            down = pickle.load(f)
-        self.steady = neat.nn.FeedForwardNetwork.create(down, config)
+            steady = pickle.load(f)
+            print(steady)
+        self.steady = neat.nn.FeedForwardNetwork.create(steady, config)
 
 if False:
     # Find current best ringing up
@@ -114,6 +115,7 @@ if True:
         os.system("scp current_best ./networks/ring_steady")
     else:
         os.system("scp ./current_network/%d ./networks/ring_steady" % load_num)
+
 
 nets = Networks()
 
@@ -228,6 +230,7 @@ async def main():
                     # left button
                     ring_up = not (ring_up)
                     ring_down = False
+                    ring_steady = False
 
             if event.type == 1025:
 
@@ -235,6 +238,7 @@ async def main():
                     # left button
                     ring_down = not (ring_down)
                     ring_up = False
+                    ring_steady = False
 
             if event.type == 1025:
                 if bell.stay_hit > 0:
@@ -266,6 +270,16 @@ async def main():
 
         if count % refresh_rate == 0:
             pygame.display.update()
+
+        #'Learn as it goes'
+        if count % 10000 == 0:
+            # Find current best ringing up
+            if load_num < 0:
+                os.system("scp current_best ./networks/ring_steady")
+            else:
+                os.system("scp ./current_network/%d ./networks/ring_steady" % load_num)
+
+            nets = Networks()
 
         count += 1
 

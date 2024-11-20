@@ -16,9 +16,9 @@ import random
 
 runs_per_net = 25
 simulation_seconds = 60.0
-ngenerations = 1000
+ngenerations = 10000
 
-for i in range(0,1000):
+for i in range(0,10000):
     if os.path.isfile('./current_network/%d' % i):
         os.remove('./current_network/%d' % i)
 
@@ -84,10 +84,10 @@ def eval_genome(genome, config):
             sim.bell.m_1 = uniform(150,550)
             sim.bell.m_2 = 0.05*sim.bell.m_1
             if runs < int(runs_per_net/2):
-                sim.bell.bell_angle = np.pi+sim.bell.stay_angle
+                sim.bell.bell_angle = np.pi-0.01
                 sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
             else:
-                sim.bell.bell_angle = -np.pi-sim.bell.stay_angle
+                sim.bell.bell_angle = -np.pi+0.01
                 sim.bell.clapper_angle = sim.bell.bell_angle + sim.bell.clapper_limit - 0.01
             sim.bell.target_period = uniform(3,5.5)
 
@@ -109,8 +109,10 @@ def eval_genome(genome, config):
 
             fitness = fitness + sim.bell.fitness_increment(sim.phy)
         fitness = sim.bell.fitness_fn()
+
         fitnesses.append(fitness)
     # The genome's fitness is now its average.
+    #return min(fitnesses)
     return np.sum(fitnesses)/len(fitnesses)
 
 

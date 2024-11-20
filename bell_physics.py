@@ -376,27 +376,34 @@ class init_bell:
 
         return [self.bell_angle / (np.pi + self.stay_angle), self.velocity / (10.0), self.m_1/1000, bt, ht, pb, ph]
 
+    #def establish_rhythm(self, first_handstroke):
+        """Estalishes the desired times for each stroke"""
+        """Outputs the TIMES that these should happen as a series of arrays"""
+        """Need to be able to readjust while ringing I suppose (but not for training)"""
+
+
+
+
     def fitness_fn(self):
         #Evaulate overall performance based on accuracies
         alpha = 2
         force_fraction = 0.25
-        worst_time = 2.5 #If out by more than 2.5 it's not worth thinking about
+        worst_time = 1.0 #If out by more than 2.5 it's not worth thinking about
         overall_forces = np.sum(np.array(self.forces))/len(self.forces)
 
         handstrokes = 0
-        if len(self.handstroke_accuracy) > 1:
+        if len(self.handstroke_accuracy) > 4:  #Punish if it can't get off the stay'
             for h in range(len(self.handstroke_accuracy)-1):
                 handstrokes += (max(0.0, (worst_time - abs(self.handstroke_accuracy[h+1]))/worst_time)**alpha)
             handstrokes = handstrokes/(len(self.handstroke_accuracy)-1)
 
         backstrokes = 0
-        if len(self.backstroke_accuracy) > 1:
+        if len(self.backstroke_accuracy) > 4:
             for b in range(len(self.backstroke_accuracy)-1):
                 backstrokes += (max(0.0, (worst_time - abs(self.backstroke_accuracy[b+1]))/worst_time)**alpha)
             backstrokes = backstrokes/(len(self.backstroke_accuracy)-1)
 
         return force_fraction*(1.0-overall_forces)**alpha + 0.5*(1.0-force_fraction)*(handstrokes + backstrokes)
-
 
     def fitness_increment(self, phy):
         """Fitness function at a given time rather than evaulating after the fact"""

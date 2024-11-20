@@ -35,8 +35,8 @@ else:
     with open("./current_network/%d" % (load_num ), "rb") as f:
         c = pickle.load(f)
 
-#print("Loaded genome:")
-#print(c)
+print("Loaded genome:")
+print(c)
 
 # Load the config file, which is assumed to live in
 # the same directory as this script.
@@ -66,7 +66,7 @@ sim.bell.clapper_angle = sim.bell.bell_angle + sim.bell.clapper_limit
 sim.bell.m_1 = 500
 sim.bell.m_2 = 0.05*sim.bell.m_1
 sim.bell.target_period = uniform(3,5.5)
-sim.bell.target_period = 5
+sim.bell.target_period = 3
 print('Target period', sim.bell.target_period )
 angles_log = [sim.bell.bell_angle]
 velocities_log = [sim.bell.velocity]
