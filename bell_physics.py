@@ -407,7 +407,7 @@ class init_bell:
 
         return next_handstroke, next_backstroke
 
-    def fitness_fn(self, print_accuracy = False):
+    def fitness_fn(self, phy, print_accuracy = False):
         #Evaulate overall performance based on accuracies
         alpha = 2
         force_fraction = 1.5 #Force MULTIPLIER as it's being a bit MHA
@@ -436,7 +436,10 @@ class init_bell:
             if print_accuracy:
                 print('Handstroke SD:', np.sqrt(handstroke_variance)*1000)
                 print('Backstroke SD:', np.sqrt(backstroke_variance)*1000)
-        return rhythm*force_mult
+        if False:   #Old fitness function
+            return rhythm*force_mult
+        if True:
+            return phy.time
 
     def fitness_increment(self, phy):
         """Fitness function at a given time rather than evaulating after the fact"""

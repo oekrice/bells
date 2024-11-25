@@ -35,38 +35,11 @@ pygame.init()
 phy = init_physics()
 bell = init_bell(phy, 0.0)
 
-if random.random() < 0.0:  # pick a random angle
-    bell.bell_angle = uniform(-np.pi - bell.stay_angle, np.pi + bell.stay_angle)
-    bell.clapper_angle = bell.bell_angle
-else:
-    if random.random() < 0.0:  # important that it can get itself off at hand and back
-        bell.bell_angle = uniform(np.pi + 0.95 * bell.stay_angle, np.pi + bell.stay_angle)
-        bell.clapper_angle = bell.bell_angle + bell.clapper_limit - 0.01
-    else:
-        bell.bell_angle = uniform(-np.pi - 0.95 * bell.stay_angle, -np.pi - bell.stay_angle)
-        bell.clapper_angle = bell.bell_angle - bell.clapper_limit + 0.01
-
-bell.m_1 = uniform(200,500)
-bell.m_1 = 400
-bell.m_2 = 0.05*bell.m_1
-
-#bell.m_1 = uniform(150,550)
-bell.m_1 = 400
-bell.m_2 = 0.05*bell.m_1
-#
-
-if True:
-    bell.bell_angle = uniform(-np.pi-0.95*bell.stay_angle, -np.pi-bell.stay_angle)
-    bell.clapper_angle = bell.bell_angle - bell.clapper_limit + 0.01
-else:
-    bell.bell_angle = uniform(np.pi+0.95*bell.stay_angle, np.pi+bell.stay_angle)
-    bell.clapper_angle = bell.bell_angle + bell.clapper_limit - 0.01
-
 bell.bell_angle = np.pi + 0.01
 bell.clapper_angle = bell.bell_angle + bell.clapper_limit - 0.01
 
 bell.target_period = 4.7
-bell.stay_break_limit = 1.0
+bell.stay_break_limit = 0.4
 
 print('Bell mass', bell.m_1)
 
@@ -124,6 +97,7 @@ nets = Networks()
 
 refresh_rate = 2
 
+strike_limit = 1.0
 async def main():
 
     fpsClock = pygame.time.Clock()
@@ -262,6 +236,13 @@ async def main():
                         bell.max_length = 0.0  # max backstroke length
                         bell.stay_angle = 0.15
 
+            if len(bell.handstroke_accuracy) > 0:
+                if np.abs(bell.handstroke_accuracy[-1]) > strike_limit:
+                    print(bell.handstroke_accuracy)
+                if len(bell.backstroke_accuracy) > 0:
+                    if np.abs(bell.backstroke_accuracy[-1]) > strike_limit:
+                        print(bell.backstroke_accuracy)
+
             if event.type == QUIT:
                 pygame.quit()
                 return
@@ -281,7 +262,7 @@ async def main():
         if count % refresh_rate == 0:
             pygame.display.update()
         if count % 60 == 0:
-            fitness = bell.fitness_fn(print_accuracy = True)
+            fitness = bell.fitness_fn(phy, print_accuracy = True)
             print('Fitness', fitness)
         #'Learn as it goes'
         if count % 10000 == 0:
