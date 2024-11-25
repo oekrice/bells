@@ -46,11 +46,27 @@ else:
         bell.bell_angle = uniform(-np.pi - 0.95 * bell.stay_angle, -np.pi - bell.stay_angle)
         bell.clapper_angle = bell.bell_angle - bell.clapper_limit + 0.01
 
-bell.bell_angle = 0.0
-bell.clapper_angle = 0.0
 bell.m_1 = uniform(200,500)
-bell.m_1 = 500
+bell.m_1 = 400
 bell.m_2 = 0.05*bell.m_1
+
+#bell.m_1 = uniform(150,550)
+bell.m_1 = 400
+bell.m_2 = 0.05*bell.m_1
+#
+
+if True:
+    bell.bell_angle = uniform(-np.pi-0.95*bell.stay_angle, -np.pi-bell.stay_angle)
+    bell.clapper_angle = bell.bell_angle - bell.clapper_limit + 0.01
+else:
+    bell.bell_angle = uniform(np.pi+0.95*bell.stay_angle, np.pi+bell.stay_angle)
+    bell.clapper_angle = bell.bell_angle + bell.clapper_limit - 0.01
+
+bell.bell_angle = np.pi + 0.01
+bell.clapper_angle = bell.bell_angle + bell.clapper_limit - 0.01
+
+bell.target_period = 4.7
+bell.stay_break_limit = 1.0
 
 print('Bell mass', bell.m_1)
 
@@ -79,9 +95,12 @@ class Networks:
         with open("networks/ring_down", "rb") as f:
             down = pickle.load(f)
         self.down = neat.nn.FeedForwardNetwork.create(down, config)
+        with open("networks/ring_steady", "rb") as f:
+            steady = pickle.load(f)
+            print(steady)
+        self.steady = neat.nn.FeedForwardNetwork.create(steady, config)
 
-
-if True:
+if False:
     # Find current best ringing up
     if load_num < 0:
         os.system("scp current_best ./networks/ring_up")
@@ -93,11 +112,17 @@ if False:
         os.system("scp current_best ./networks/ring_down")
     else:
         os.system("scp ./current_network/%d ./networks/ring_down" % load_num)
+if True:
+    # Find current best ringing up
+    if load_num < 0:
+        os.system("scp current_best ./networks/ring_steady")
+    else:
+        os.system("scp ./current_network/%d ./networks/ring_steady" % load_num)
+
 
 nets = Networks()
 
 refresh_rate = 2
-
 
 async def main():
 
@@ -107,7 +132,7 @@ async def main():
     count = 0
     ring_up = False
     ring_down = False
-
+    ring_steady = False
     dp.surface.fill(dp.WHITE)
 
     while True:  # the main game loop
@@ -129,6 +154,11 @@ async def main():
         if ring_down:
             inputs = bell.get_scaled_state()
             action = nets.down.activate(inputs)
+            force = min(1.0, force + action[0])
+
+        if ring_steady:
+            inputs = bell.get_scaled_state()
+            action = nets.steady.activate(inputs)
             force = min(1.0, force + action[0])
 
         if bell.stay_hit > 0:
@@ -156,7 +186,7 @@ async def main():
 
                 dp.display_stroke(phy, bell)  # Displays the text 'handstroke' or 'backstroke'
 
-                dp.display_state(phy, ring_up, ring_down)
+                dp.display_state(phy, bell, ring_up, ring_down, ring_steady)
 
                 dp.display_force(phy, bell, bell.wheel_force)
 
@@ -166,27 +196,51 @@ async def main():
         if bell.ding == True:
             # if abs(bell.bell_angle) > bell.sound_angle and abs(bell.prev_angle) <= bell.sound_angle:
             bell.sound.play()
+            if bell.bell_angle > 0:
+                print(bell.backstroke_target)
+            else:
+                print(bell.handstroke_target)
             # continue
         # Check for force on wheel - this takes effect at the next timestep
 
         mouse = pygame.mouse.get_pos()  # use to activate things
 
+        #print(bell.handstroke_targets, bell.backstroke_targets)
         # Check for actions or stay smash. All needs to be in the same event.get for some reason.
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_u:
                     ring_up = not (ring_up)
                     ring_down = False
+                    ring_steady = False
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_d:
                     ring_down = not (ring_down)
                     ring_up = False
+                    ring_steady = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_s:
+                    ring_steady = not (ring_steady)
+                    ring_up = False
+                    ring_down = False
+                    bell.update_rhythm = True
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_z:
+                    bell.target_period = bell.target_period - 0.1
+                    bell.update_rhythm = True
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_c:
+                    bell.target_period = bell.target_period + 0.1
+                    bell.update_rhythm = True
 
             if event.type == 1025:
                 if mouse[0] > 40 and mouse[0] < 110 and mouse[1] > 70 and mouse[1] < 90:
                     # left button
                     ring_up = not (ring_up)
                     ring_down = False
+                    ring_steady = False
 
             if event.type == 1025:
 
@@ -194,6 +248,7 @@ async def main():
                     # left button
                     ring_down = not (ring_down)
                     ring_up = False
+                    ring_steady = False
 
             if event.type == 1025:
                 if bell.stay_hit > 0:
@@ -213,11 +268,30 @@ async def main():
 
         bell.timestep(phy)
 
+        '''
+        if len(bell.backstroke_accuracy) > 0:
+            print(bell.backstroke_accuracy[-1])
+        if len(bell.handstroke_accuracy) > 0:
+            print(bell.handstroke_accuracy[-1])
+        '''
+
         if bell.stay_hit > 0:
             bell.stay_angle = 1e6
 
         if count % refresh_rate == 0:
             pygame.display.update()
+        if count % 60 == 0:
+            fitness = bell.fitness_fn(print_accuracy = True)
+            print('Fitness', fitness)
+        #'Learn as it goes'
+        if count % 10000 == 0:
+            # Find current best ringing up
+            if load_num < 0:
+                os.system("scp current_best ./networks/ring_steady")
+            else:
+                os.system("scp ./current_network/%d ./networks/ring_steady" % load_num)
+
+            nets = Networks()
 
         count += 1
 

@@ -50,7 +50,7 @@ class display_tools:
 
         self.surface.blit(textSurfaceObj, textRectObj)
 
-    def display_state(self, phy, ring_up, ring_down):
+    def display_state(self, phy, bell, ring_up, ring_down, ring_steady):
         # Display 'handstroke' or 'backstroke'
         fontObj = pygame.font.Font(pygame.font.match_font("arial"), 16)
         if ring_up:
@@ -69,6 +69,26 @@ class display_tools:
         textRectObj.center = (0.8 * phy.pixels_x, 0.2 * phy.pixels_y)
 
         self.surface.blit(textSurfaceObj, textRectObj)
+
+        if ring_steady:
+            textSurfaceObj = fontObj.render("Target speed %.1f" % bell.target_period , True, self.BLACK, self.WHITE)
+            textRectObj = textSurfaceObj.get_rect()
+            textRectObj.center = (0.5 * phy.pixels_x, 0.05 * phy.pixels_y)
+
+            self.surface.blit(textSurfaceObj, textRectObj)
+
+            if len(bell.all_handstrokes) > 2 and len(bell.all_backstrokes) > 2:
+                if bell.all_handstrokes[-1] > bell.all_backstrokes[-1]:
+                    speed = bell.all_handstrokes[-1] - bell.all_backstrokes[-1]
+                    speed = bell.all_handstrokes[-1] - bell.all_handstrokes[-2]
+                else:
+                    speed = bell.all_backstrokes[-1] - bell.all_handstrokes[-1]
+                    speed = bell.all_backstrokes[-1] - bell.all_backstrokes[-2]
+                textSurfaceObj = fontObj.render("Current speed %.1f" % (speed) , True, self.BLACK, self.WHITE)
+                textRectObj = textSurfaceObj.get_rect()
+                textRectObj.center = (0.5 * phy.pixels_x, 0.1 * phy.pixels_y)
+
+                self.surface.blit(textSurfaceObj, textRectObj)
 
     def display_force(self, phy, bell, force):
         # Display 'handstroke' or 'backstroke'

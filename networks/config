@@ -9,8 +9,8 @@ pop_size              = 200
 reset_on_extinction   = 0
 
 [DefaultGenome]
-num_inputs              = 3
-num_hidden              = 4
+num_inputs              = 7
+num_hidden              = 14
 num_outputs             = 1
 initial_connection      = partial_direct 0.5
 feed_forward            = True
@@ -56,9 +56,9 @@ compatibility_threshold = 3.0
 
 [DefaultStagnation]
 species_fitness_func = max
-max_stagnation  = 20
+max_stagnation  = 30
 
 [DefaultReproduction]
-elitism            = 2
+elitism            = 1
 survival_threshold = 0.2
 
