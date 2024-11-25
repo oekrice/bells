@@ -295,7 +295,8 @@ class init_bell:
         if self.onedge and self.ding_reset:
             #This is the strike time
             if phy.time > 0.1:
-                if self.clapper_angle > 0:
+
+                if self.clapper_angle < -np.pi/4:
                     #print('Hand', phy.time, self.handstroke_target)
                     self.all_handstrokes.append(phy.time)
                     self.handstroke_accuracy.append(self.handstroke_target)
@@ -306,7 +307,7 @@ class init_bell:
                     else:
                         self.next_handstroke, self.next_backstroke = self.establish_rhythm(self.next_handstroke)
                     #print('Targets', self.next_backstroke, self.next_handstroke)
-                else:
+                elif self.clapper_angle > np.pi/4:
                     #print('Back', phy.time, self.backstroke_target)
                     self.all_backstrokes.append(phy.time)
                     self.backstroke_accuracy.append(self.backstroke_target)
@@ -406,15 +407,15 @@ class init_bell:
 
         return next_handstroke, next_backstroke
 
-    def fitness_fn(self):
+    def fitness_fn(self, print_accuracy = False):
         #Evaulate overall performance based on accuracies
         alpha = 2
-        force_fraction = 0.1
-        worst_time = 1.0 #If out by more than 2.5 it's not worth thinking about
+        force_fraction = 1.5 #Force MULTIPLIER as it's being a bit MHA
+        worst_time = 0.5      #If out by more than this it's not worth thinking about
         overall_forces = np.sum(np.array(self.forces))/len(self.forces)
 
         handstrokes = 0
-        if len(self.handstroke_accuracy) > 4:  #Punish if it can't get off the stay'
+        if len(self.handstroke_accuracy) > 4:  #Punish if it can't get off the stay
             for h in range(len(self.handstroke_accuracy)-1):
                 handstrokes += (max(0.0, (worst_time - abs(self.handstroke_accuracy[h+1]))/worst_time)**alpha)
             handstrokes = handstrokes/(len(self.handstroke_accuracy)-1)
@@ -425,7 +426,17 @@ class init_bell:
                 backstrokes += (max(0.0, (worst_time - abs(self.backstroke_accuracy[b+1]))/worst_time)**alpha)
             backstrokes = backstrokes/(len(self.backstroke_accuracy)-1)
 
-        return force_fraction*(1.0-overall_forces)**alpha + 0.5*(1.0-force_fraction)*(handstrokes + backstrokes)
+        force_mult = 1.0 + (force_fraction - 1.0)*(1.0-overall_forces)**alpha
+        rhythm = 0.5*(1.0/force_fraction)*(handstrokes + backstrokes)
+
+        if len(self.handstroke_accuracy) > 0 and len(self.backstroke_accuracy) > 0:
+            handstroke_variance = np.sum(np.array(self.handstroke_accuracy)**2)/len(self.handstroke_accuracy)
+            backstroke_variance = np.sum(np.array(self.backstroke_accuracy)**2)/len(self.backstroke_accuracy)
+
+            if print_accuracy:
+                print('Handstroke SD:', np.sqrt(handstroke_variance)*1000)
+                print('Backstroke SD:', np.sqrt(backstroke_variance)*1000)
+        return rhythm*force_mult
 
     def fitness_increment(self, phy):
         """Fitness function at a given time rather than evaulating after the fact"""

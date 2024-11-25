@@ -46,17 +46,14 @@ else:
         bell.bell_angle = uniform(-np.pi - 0.95 * bell.stay_angle, -np.pi - bell.stay_angle)
         bell.clapper_angle = bell.bell_angle - bell.clapper_limit + 0.01
 
-
-bell.bell_angle = np.pi-0.01
-bell.clapper_angle = bell.bell_angle
-
 bell.m_1 = uniform(200,500)
 bell.m_1 = 400
 bell.m_2 = 0.05*bell.m_1
 
-bell.m_1 = uniform(150,550)
-bell.m_1 = 500
+#bell.m_1 = uniform(150,550)
+bell.m_1 = 400
 bell.m_2 = 0.05*bell.m_1
+#
 
 if True:
     bell.bell_angle = uniform(-np.pi-0.95*bell.stay_angle, -np.pi-bell.stay_angle)
@@ -68,8 +65,8 @@ else:
 bell.bell_angle = np.pi + 0.01
 bell.clapper_angle = bell.bell_angle + bell.clapper_limit - 0.01
 
-bell.target_period = uniform(3,5.5)
-bell.target_period = 4.0
+bell.target_period = 4.7
+bell.stay_break_limit = 1.0
 
 print('Bell mass', bell.m_1)
 
@@ -199,6 +196,10 @@ async def main():
         if bell.ding == True:
             # if abs(bell.bell_angle) > bell.sound_angle and abs(bell.prev_angle) <= bell.sound_angle:
             bell.sound.play()
+            if bell.bell_angle > 0:
+                print(bell.backstroke_target)
+            else:
+                print(bell.handstroke_target)
             # continue
         # Check for force on wheel - this takes effect at the next timestep
 
@@ -279,7 +280,9 @@ async def main():
 
         if count % refresh_rate == 0:
             pygame.display.update()
-
+        if count % 60 == 0:
+            fitness = bell.fitness_fn(print_accuracy = True)
+            print('Fitness', fitness)
         #'Learn as it goes'
         if count % 10000 == 0:
             # Find current best ringing up
