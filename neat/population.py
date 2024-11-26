@@ -21,20 +21,21 @@ class Population(object):
 
     def __init__(self, config, initial_state=None):
         self.reporters = ReporterSet()
-        self.config = config
-        stagnation = config.stagnation_type(config.stagnation_config, self.reporters)
-        self.reproduction = config.reproduction_type(config.reproduction_config, self.reporters, stagnation)
-        if config.fitness_criterion == "max":
-            self.fitness_criterion = max
-        elif config.fitness_criterion == "min":
-            self.fitness_criterion = min
-        elif config.fitness_criterion == "mean":
-            self.fitness_criterion = mean
-        elif not config.no_fitness_termination:
-            raise RuntimeError("Unexpected fitness_criterion: {0!r}".format(config.fitness_criterion))
 
         if initial_state is None:
             # Create a population from scratch, then partition into species.
+            stagnation = config.stagnation_type(config.stagnation_config, self.reporters)
+            self.reproduction = config.reproduction_type(config.reproduction_config, self.reporters, stagnation)
+            if config.fitness_criterion == "max":
+                self.fitness_criterion = max
+            elif config.fitness_criterion == "min":
+                self.fitness_criterion = min
+            elif config.fitness_criterion == "mean":
+                self.fitness_criterion = mean
+            elif not config.no_fitness_termination:
+                raise RuntimeError("Unexpected fitness_criterion: {0!r}".format(config.fitness_criterion))
+
+            self.config = config
             self.population = self.reproduction.create_new(config.genome_type, config.genome_config, config.pop_size)
             self.species = config.species_set_type(config.species_set_config, self.reporters)
             self.generation = 0
@@ -42,6 +43,23 @@ class Population(object):
         else:
             self.population, self.species, self.generation = initial_state
 
+            with open("population_data/config", "rb") as f:
+                config = pickle.load(f)
+            self.config = config
+            self.species.speciate(self.config, self.population, self.generation)
+
+            stagnation = config.stagnation_type(config.stagnation_config, self.reporters)
+            self.reproduction = config.reproduction_type(config.reproduction_config, self.reporters, stagnation)
+            if config.fitness_criterion == "max":
+                self.fitness_criterion = max
+            elif config.fitness_criterion == "min":
+                self.fitness_criterion = min
+            elif config.fitness_criterion == "mean":
+                self.fitness_criterion = mean
+            elif not config.no_fitness_termination:
+                raise RuntimeError("Unexpected fitness_criterion: {0!r}".format(config.fitness_criterion))
+
+            print('Importing existing population at generation', self.generation)
         self.best_genome = None
 
     def add_reporter(self, reporter):
@@ -74,9 +92,7 @@ class Population(object):
             raise RuntimeError("Cannot have no generational limit with no fitness termination")
 
         overall_best_fitness = 0.0
-        k = 0
-        while n is None or k < n:
-            k += 1
+        while n is None or self.generation < n:
 
             self.reporters.start_generation(self.generation)
 
@@ -132,8 +148,22 @@ class Population(object):
                 with open("current_best", "wb") as f:
                     pickle.dump(self.best_genome, f)
 
-            with open("./current_network/%d" % (k-1), "wb") as f:
+            with open("./population_data/population", "wb") as f:
+                pickle.dump(self.population, f)
+
+            with open("./population_data/species", "wb") as f:
+                pickle.dump(self.species, f)
+
+            with open("./population_data/generation", "wb") as f:
+                pickle.dump(self.generation, f)
+
+            with open("./population_data/config", "wb") as f:
+                pickle.dump(self.config, f)
+
+            with open("./current_network/%d" % (self.generation-1), "wb") as f:
                 pickle.dump(best, f)
+
+
 
         if self.config.no_fitness_termination:
             self.reporters.found_solution(self.config, self.generation, self.best_genome)

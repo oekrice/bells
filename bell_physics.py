@@ -71,9 +71,12 @@ class init_bell:
         self.backstroke_pull = 1.0  # length of backstroke pull in metres
 
         self.prev_angle = init_angle  # previous maximum angle
-        self.max_length = 0.0  # max backstroke length
 
         self.rlength, self.effect_force = self.ropelength()
+        if np.abs(self.bell_angle) < 0.5:
+            self.max_length = 0.0  # max backstroke length
+        else:
+            self.max_length = self.radius*(1.0 + 3*np.pi/2 - self.garter_hole)
         self.rlengths = []
         self.effect_forces = []
 
@@ -363,7 +366,6 @@ class init_bell:
         # Outputs the length of the rope above the garter hole, relative to the minimum.
         # Also outputs the maximum force available with direction.
         hole_angle = self.bell_angle - np.pi + self.garter_hole
-
         if hole_angle > 0.0:
             # Fully Handstroke
             length = self.radius * hole_angle + self.radius
@@ -429,17 +431,21 @@ class init_bell:
         force_mult = 1.0 + (force_fraction - 1.0)*(1.0-overall_forces)**alpha
         rhythm = 0.5*(1.0/force_fraction)*(handstrokes + backstrokes)
 
-        if len(self.handstroke_accuracy) > 0 and len(self.backstroke_accuracy) > 0:
-            handstroke_variance = np.sum(np.array(self.handstroke_accuracy)**2)/len(self.handstroke_accuracy)
-            backstroke_variance = np.sum(np.array(self.backstroke_accuracy)**2)/len(self.backstroke_accuracy)
+        if len(self.handstroke_accuracy) > 1 and len(self.backstroke_accuracy) > 1:
+            handstroke_variance = np.sum(np.array(self.handstroke_accuracy[1:])**2)/(len(self.handstroke_accuracy)-1)
+            backstroke_variance = np.sum(np.array(self.backstroke_accuracy[1:])**2)/(len(self.backstroke_accuracy)-1)
 
             if print_accuracy:
                 print('Handstroke SD:', np.sqrt(handstroke_variance)*1000)
                 print('Backstroke SD:', np.sqrt(backstroke_variance)*1000)
+
         if False:   #Old fitness function
             return rhythm*force_mult
-        if True:
-            return phy.time
+
+        if len(self.all_handstrokes) > 3:
+            return self.all_handstrokes[-1] - self.all_handstrokes[1]
+        else:
+            return 0.0
 
     def fitness_increment(self, phy):
         """Fitness function at a given time rather than evaulating after the fact"""

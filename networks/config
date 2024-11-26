@@ -4,7 +4,7 @@
 # or the experiment itself.  This is the only required section.
 [NEAT]
 fitness_criterion     = max
-fitness_threshold     = 50000.0
+fitness_threshold     = 54.0
 pop_size              = 200
 reset_on_extinction   = 0
 
@@ -56,7 +56,7 @@ compatibility_threshold = 3.0
 
 [DefaultStagnation]
 species_fitness_func = max
-max_stagnation  = 30
+max_stagnation  = 10
 
 [DefaultReproduction]
 elitism            = 1

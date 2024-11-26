@@ -35,11 +35,23 @@ pygame.init()
 phy = init_physics()
 bell = init_bell(phy, 0.0)
 
-bell.bell_angle = np.pi + 0.01
-bell.clapper_angle = bell.bell_angle + bell.clapper_limit - 0.01
+if random.random() < 1.0:
+    bell.bell_angle = uniform(np.pi+0.5*bell.stay_angle, np.pi+bell.stay_angle)
+    bell.clapper_angle = bell.bell_angle + bell.clapper_limit - 0.01
+else:
+    bell.bell_angle = uniform(-np.pi-0.5*bell.stay_angle, -np.pi -bell.stay_angle)
+    bell.clapper_angle = bell.bell_angle - bell.clapper_limit + 0.01
+
+if np.abs(bell.bell_angle) < 0.5:
+    bell.max_length = 0.0  # max backstroke length
+else:
+    bell.max_length = bell.radius*(1.0 + 3*np.pi/2 - bell.garter_hole)
 
 bell.target_period = 4.7
-bell.stay_break_limit = 0.4
+bell.stay_break_limit = 1.0
+
+bell.m_1 = 400
+bell.m_2 = 0.05*bell.m_1
 
 print('Bell mass', bell.m_1)
 
@@ -236,12 +248,6 @@ async def main():
                         bell.max_length = 0.0  # max backstroke length
                         bell.stay_angle = 0.15
 
-            if len(bell.handstroke_accuracy) > 0:
-                if np.abs(bell.handstroke_accuracy[-1]) > strike_limit:
-                    print(bell.handstroke_accuracy)
-                if len(bell.backstroke_accuracy) > 0:
-                    if np.abs(bell.backstroke_accuracy[-1]) > strike_limit:
-                        print(bell.backstroke_accuracy)
 
             if event.type == QUIT:
                 pygame.quit()
@@ -264,6 +270,9 @@ async def main():
         if count % 60 == 0:
             fitness = bell.fitness_fn(phy, print_accuracy = True)
             print('Fitness', fitness)
+            print(bell.handstroke_accuracy)
+            print(bell.backstroke_accuracy)
+
         #'Learn as it goes'
         if count % 10000 == 0:
             # Find current best ringing up
