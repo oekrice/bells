@@ -42,7 +42,10 @@ class Population(object):
             self.species.speciate(config, self.population, self.generation)
         else:
             self.population, self.species, self.generation = initial_state
-
+            with open("population_data/config", "rb") as f:
+                config = pickle.load(f)
+            self.config = config
+            self.species.speciate(self.config, self.population, self.generation)
             stagnation = config.stagnation_type(config.stagnation_config, self.reporters)
             self.reproduction = config.reproduction_type(config.reproduction_config, self.reporters, stagnation)
             if config.fitness_criterion == "max":
@@ -53,10 +56,8 @@ class Population(object):
                 self.fitness_criterion = mean
             elif not config.no_fitness_termination:
                 raise RuntimeError("Unexpected fitness_criterion: {0!r}".format(config.fitness_criterion))
-            self.config = config
-            self.species.speciate(self.config, self.population, self.generation)
-
             print('Importing existing population at generation', self.generation)
+
         self.best_genome = None
 
     def add_reporter(self, reporter):
@@ -89,6 +90,7 @@ class Population(object):
             raise RuntimeError("Cannot have no generational limit with no fitness termination")
 
         overall_best_fitness = 0.0
+        found_solution = False
         k = 0
         while n is None or self.generation < n:
 
@@ -114,9 +116,9 @@ class Population(object):
             if not self.config.no_fitness_termination:
                 # End if the fitness threshold is reached.
                 fv = self.fitness_criterion(g.fitness for g in self.population.values())
-                if fv >= self.config.fitness_threshold:
+                if fv >= self.config.fitness_threshold and k > 0:
                     self.reporters.found_solution(self.config, self.generation, best)
-                    break
+                    found_solution = True
 
             # Create the next generation from the current generation.
             if k == 0:
@@ -126,7 +128,6 @@ class Population(object):
             # Check for complete extinction.
             if not self.species.species:
                 self.reporters.complete_extinction()
-
                 # If requested by the user, create a completely new population,
                 # otherwise raise an exception.
                 if self.config.reset_on_extinction:
@@ -164,6 +165,9 @@ class Population(object):
                 pickle.dump(best, f)
 
             k += 1
+
+            if found_solution:
+                break
 
         if self.config.no_fitness_termination:
             self.reporters.found_solution(self.config, self.generation, self.best_genome)

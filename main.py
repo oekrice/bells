@@ -183,9 +183,9 @@ async def main():
             # if abs(bell.bell_angle) > bell.sound_angle and abs(bell.prev_angle) <= bell.sound_angle:
             bell.sound.play()
             if bell.bell_angle > 0:
-                print(bell.backstroke_target)
+                print('Back', bell.backstroke_target)
             else:
-                print(bell.handstroke_target)
+                print('Hand', bell.handstroke_target)
             # continue
         # Check for force on wheel - this takes effect at the next timestep
 

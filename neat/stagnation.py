@@ -43,6 +43,10 @@ class DefaultStagnation(DefaultClassConfig):
         """
         species_data = []
         for sid, s in species_set.species.items():
+
+            if reset_stagnation:
+                s.fitness_history = []
+
             if s.fitness_history:
                 prev_fitness = max(s.fitness_history)
             else:
@@ -56,6 +60,7 @@ class DefaultStagnation(DefaultClassConfig):
 
             if reset_stagnation:
                 s.last_improved = generation
+
             species_data.append((sid, s))
 
         # Sort in ascending fitness order.
