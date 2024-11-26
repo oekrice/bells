@@ -72,7 +72,7 @@ sim.bell.target_period = 4.7
 sim.bell.m_1 = 400
 sim.bell.m_2 = 0.05*sim.bell.m_1
 
-sim.bell.stay_break_limit = 1.0
+sim.bell.stay_break_limit = 0.4
 
 print('Target period', sim.bell.target_period )
 angles_log = [sim.bell.bell_angle]

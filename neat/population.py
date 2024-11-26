@@ -43,11 +43,6 @@ class Population(object):
         else:
             self.population, self.species, self.generation = initial_state
 
-            with open("population_data/config", "rb") as f:
-                config = pickle.load(f)
-            self.config = config
-            self.species.speciate(self.config, self.population, self.generation)
-
             stagnation = config.stagnation_type(config.stagnation_config, self.reporters)
             self.reproduction = config.reproduction_type(config.reproduction_config, self.reporters, stagnation)
             if config.fitness_criterion == "max":
@@ -58,6 +53,8 @@ class Population(object):
                 self.fitness_criterion = mean
             elif not config.no_fitness_termination:
                 raise RuntimeError("Unexpected fitness_criterion: {0!r}".format(config.fitness_criterion))
+            self.config = config
+            self.species.speciate(self.config, self.population, self.generation)
 
             print('Importing existing population at generation', self.generation)
         self.best_genome = None
@@ -92,6 +89,7 @@ class Population(object):
             raise RuntimeError("Cannot have no generational limit with no fitness termination")
 
         overall_best_fitness = 0.0
+        k = 0
         while n is None or self.generation < n:
 
             self.reporters.start_generation(self.generation)
@@ -121,8 +119,10 @@ class Population(object):
                     break
 
             # Create the next generation from the current generation.
-            self.population = self.reproduction.reproduce(self.config, self.species, self.config.pop_size, self.generation)
-
+            if k == 0:
+                self.population = self.reproduction.reproduce(self.config, self.species, self.config.pop_size, self.generation, reset_stagnation = True)
+            else:
+                self.population = self.reproduction.reproduce(self.config, self.species, self.config.pop_size, self.generation, reset_stagnation = False)
             # Check for complete extinction.
             if not self.species.species:
                 self.reporters.complete_extinction()
@@ -163,7 +163,7 @@ class Population(object):
             with open("./current_network/%d" % (self.generation-1), "wb") as f:
                 pickle.dump(best, f)
 
-
+            k += 1
 
         if self.config.no_fitness_termination:
             self.reporters.found_solution(self.config, self.generation, self.best_genome)

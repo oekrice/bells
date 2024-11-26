@@ -355,9 +355,9 @@ class init_bell:
         if False:  #Target is based on previous same stroke
             self.backstroke_target = self.all_backstrokes[-1] + self.target_period - phy.time
             self.handstroke_target = self.all_handstrokes[-1] + self.target_period - phy.time
-        elif False:
-            self.backstroke_target = self.all_handstrokes[-1] + 0.5*self.target_period - phy.time
-            self.handstroke_target = self.all_backstrokes[-1] + 0.5*self.target_period - phy.time
+        elif True:
+            self.backstroke_target = self.all_handstrokes[-1] + self.nbells/(self.nbells*2 + 1)*self.target_period - phy.time
+            self.handstroke_target = self.all_backstrokes[-1] + (self.nbells + 1)/(self.nbells*2 + 1)*self.target_period - phy.time
         else:  #Receive info from the rhythm function
             self.backstroke_target = self.next_backstroke - phy.time
             self.handstroke_target = self.next_handstroke - phy.time

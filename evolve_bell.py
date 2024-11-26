@@ -16,7 +16,7 @@ import random
 
 runs_per_net = 25
 simulation_seconds = 60.0
-ngenerations = 3000
+ngenerations = 100
 
 use_existing_population = True #Load an existing network that is presumably better than nothing
 
@@ -42,7 +42,7 @@ def eval_genome(genome, config):
                 sim.bell.bell_angle = uniform(-np.pi-0.5*sim.bell.stay_angle, -np.pi -sim.bell.stay_angle)
                 sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
 
-            sim.bell.target_period = uniform(4.6,4.8)
+            sim.bell.target_period = uniform(5.9,6.1)
 
             sim.bell.m_1 = uniform(390,410)
             sim.bell.m_2 = 0.05*sim.bell.m_1
@@ -66,7 +66,7 @@ def eval_genome(genome, config):
             sim.bell.pull = force
             sim.step(force)
 
-            strike_limit = 0.5  #5 seconds out in each direction to begin with
+            strike_limit = 0.9#5 seconds out in each direction to begin with
             #Exit if out of bounds
             if len(sim.bell.handstroke_accuracy) > 1:
                 if np.abs(sim.bell.handstroke_accuracy[-1]) > strike_limit:

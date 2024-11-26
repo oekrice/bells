@@ -85,7 +85,7 @@ class DefaultReproduction(DefaultClassConfig):
 
         return spawn_amounts
 
-    def reproduce(self, config, species, pop_size, generation):
+    def reproduce(self, config, species, pop_size, generation, reset_stagnation = False):
         """
         Handles creation of genomes, either from scratch or by sexual or
         asexual reproduction from parents.
@@ -100,7 +100,7 @@ class DefaultReproduction(DefaultClassConfig):
         # interfering with the shared fitness scheme.
         all_fitnesses = []
         remaining_species = []
-        for stag_sid, stag_s, stagnant in self.stagnation.update(species, generation):
+        for stag_sid, stag_s, stagnant in self.stagnation.update(species, generation,reset_stagnation = reset_stagnation):
             if stagnant:
                 self.reporters.species_stagnant(stag_sid, stag_s)
             else:
