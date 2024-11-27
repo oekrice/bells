@@ -356,7 +356,7 @@ class init_bell:
         if False:  #Target is based on previous same stroke
             self.backstroke_target = self.all_backstrokes[-1] + self.target_period - phy.time
             self.handstroke_target = self.all_handstrokes[-1] + self.target_period - phy.time
-        elif False:
+        elif True:
             self.backstroke_target = self.all_handstrokes[-1] + self.nbells/(self.nbells*2 + 1)*self.target_period - phy.time
             self.handstroke_target = self.all_backstrokes[-1] + (self.nbells + 1)/(self.nbells*2 + 1)*self.target_period - phy.time
         else:  #Receive info from the rhythm function
@@ -413,7 +413,7 @@ class init_bell:
     def fitness_fn(self, phy, print_accuracy = False):
         #Evaulate overall performance based on accuracies
         alpha = 2
-        force_fraction = 1.5 #Force MULTIPLIER as it's being a bit MHA
+        force_fraction = 1.25 #Force MULTIPLIER as it's being a bit MHA
         worst_time = 1.0      #If out by more than this it's not worth thinking about
         overall_forces = np.sum(np.array(self.forces))/len(self.forces)
 
@@ -435,7 +435,7 @@ class init_bell:
         npulls = min(len(self.handstroke_accuracy), len(self.backstroke_accuracy)) - 1
         striking = 0
 
-        if npulls > 4:
+        if npulls > 2:
             for p in range(npulls):
                 if abs(self.handstroke_accuracy[p+1]) < worst_time:
                     hstroke = (max(0.0, (worst_time - abs(self.handstroke_accuracy[p+1]))/worst_time)**alpha)

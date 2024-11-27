@@ -35,8 +35,8 @@ else:
     with open("./current_network/%d" % (load_num ), "rb") as f:
         c = pickle.load(f)
 
-print("Loaded genome:")
-print(c)
+#print("Loaded genome:")
+#print(c)
 
 # Load the config file, which is assumed to live in
 # the same directory as this script.
@@ -74,15 +74,15 @@ sim.bell.m_2 = 0.05*sim.bell.m_1
 
 sim.bell.stay_break_limit = 0.4
 
-print('Target period', sim.bell.target_period )
+#print('Target period', sim.bell.target_period )
 angles_log = [sim.bell.bell_angle]
 velocities_log = [sim.bell.velocity]
 
-print()
-print("Initial conditions:")
-print("    angle = {0:.4f}".format(sim.bell.bell_angle))
-print(" velocity = {0:.4f}".format(sim.bell.velocity))
-print(" bell mass = {0:.4f}".format(sim.bell.m_1))
+#print()
+#print("Initial conditions:")
+#print("    angle = {0:.4f}".format(sim.bell.bell_angle))
+#print(" velocity = {0:.4f}".format(sim.bell.velocity))
+#print(" bell mass = {0:.4f}".format(sim.bell.m_1))
 
 fitness = 0
 strike_limit = 5.0
@@ -113,18 +113,17 @@ while sim.phy.time < 60*sim.bell.target_period:
         if sim.bell.stay_hit > 0:
             break
 
-print(sim.bell.handstroke_accuracy)
-print(sim.bell.backstroke_accuracy)
+#print(sim.bell.handstroke_accuracy)
+#print(sim.bell.backstroke_accuracy)
 #print(sim.bell.forces)
 fitness = sim.bell.fitness_fn(sim.phy, print_accuracy = True)
 print("fitness", fitness)
 
-print()
-print("Final conditions:")
-print("    angle = {0:.4f}".format(sim.bell.bell_angle))
-print(" velocity = {0:.4f}".format(sim.bell.velocity))
-print()
-
+#print()
+#print("Final conditions:")
+#print("    angle = {0:.4f}".format(sim.bell.bell_angle))
+#print(" velocity = {0:.4f}".format(sim.bell.velocity))
+#
 plt.plot(sim.bell.times, angles_log)
 plt.plot(sim.bell.times, 0.0*np.ones(len(sim.bell.times)),linestyle = 'dotted')
 plt.plot(sim.bell.times, np.pi*np.ones(len(sim.bell.times)),linestyle = 'dashed')
@@ -165,10 +164,10 @@ def plot_forces():
     plt.savefig('network_graphs/%04d.png' % load_num)
     if load_num < 0:
         plt.show()
-    plt.show()
+    #plt.show()
     plt.close()
 
-#plot_forces()
+plot_forces()
 
 def plot_rounds():
     #Plots the bell's ability in plot_rounds
@@ -228,7 +227,7 @@ def plot_rounds():
     plt.savefig('rounds_graphs/%04d.png' % load_num)
     if load_num < 0:
         plt.show()
-    plt.show()
+    #plt.show()
     plt.close()
 
 plot_rounds()

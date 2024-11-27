@@ -16,7 +16,7 @@ import random
 
 runs_per_net = 25
 simulation_seconds = 60.0
-ngenerations = 3000
+ngenerations = 500
 
 use_existing_population = True #Load an existing network that is presumably better than nothing
 
