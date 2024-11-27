@@ -429,8 +429,28 @@ class init_bell:
                 backstrokes += (max(0.0, (worst_time - abs(self.backstroke_accuracy[b+1]))/worst_time)**alpha)
             backstrokes = backstrokes/(len(self.backstroke_accuracy)-1)
 
+        #Use the worst out of either stroke -- currently just favouring getting one of them bang on
+        #Do not use the first of either back or hand
+
+        npulls = min(len(self.handstroke_accuracy), len(self.backstroke_accuracy)) - 1
+        striking = 0
+
+        if npulls > 4:
+            for p in range(npulls):
+                if abs(self.handstroke_accuracy[p+1]) < worst_time:
+                    hstroke = (max(0.0, (worst_time - abs(self.handstroke_accuracy[p+1]))/worst_time)**alpha)
+                else:
+                    hstroke = 0.0
+                if abs(self.backstroke_accuracy[p+1]) < worst_time:
+                    bstroke = (max(0.0, (worst_time - abs(self.backstroke_accuracy[p+1]))/worst_time)**alpha)
+                else:
+                    bstroke = 0.0
+
+                striking += min(hstroke, bstroke)
+            striking = striking/npulls
+
         force_mult = 1.0 + (force_fraction - 1.0)*(1.0-overall_forces)**alpha
-        rhythm = 0.5*(1.0/force_fraction)*(handstrokes + backstrokes)
+        rhythm = (1.0/force_fraction)*(striking)
 
         if len(self.handstroke_accuracy) > 1 and len(self.backstroke_accuracy) > 1:
             handstroke_variance = np.sum(np.array(self.handstroke_accuracy[1:])**2)/(len(self.handstroke_accuracy)-1)

@@ -67,7 +67,7 @@ if np.abs(sim.bell.bell_angle) < 0.5:
 else:
     sim.bell.max_length = sim.bell.radius*(1.0 + 3*np.pi/2 - sim.bell.garter_hole)
 
-sim.bell.target_period = 4.7
+sim.bell.target_period = 6.0
 
 sim.bell.m_1 = 400
 sim.bell.m_2 = 0.05*sim.bell.m_1
@@ -168,11 +168,11 @@ def plot_forces():
     plt.show()
     plt.close()
 
-plot_forces()
+#plot_forces()
 
 def plot_rounds():
     #Plots the bell's ability in plot_rounds
-    fig = plt.figure(figsize = (2,10))
+    fig = plt.figure(figsize = (2,8))
     try:
 
         nbells = sim.bell.nbells

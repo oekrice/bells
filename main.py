@@ -47,7 +47,7 @@ if np.abs(bell.bell_angle) < 0.5:
 else:
     bell.max_length = bell.radius*(1.0 + 3*np.pi/2 - bell.garter_hole)
 
-bell.target_period = 5.9
+bell.target_period = 6.0
 bell.stay_break_limit = 1.0
 
 bell.m_1 = 400
