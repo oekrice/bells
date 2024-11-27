@@ -127,6 +127,7 @@ class init_bell:
         self.next_handstroke = self.target_period
         self.next_backstroke = self.target_period/2
 
+        self.strike_limit = 100
 
     def timestep(self, phy):
         # Do the timestep here, using only bell.force, which comes either from an input or the machine
@@ -355,7 +356,7 @@ class init_bell:
         if False:  #Target is based on previous same stroke
             self.backstroke_target = self.all_backstrokes[-1] + self.target_period - phy.time
             self.handstroke_target = self.all_handstrokes[-1] + self.target_period - phy.time
-        elif True:
+        elif False:
             self.backstroke_target = self.all_handstrokes[-1] + self.nbells/(self.nbells*2 + 1)*self.target_period - phy.time
             self.handstroke_target = self.all_backstrokes[-1] + (self.nbells + 1)/(self.nbells*2 + 1)*self.target_period - phy.time
         else:  #Receive info from the rhythm function
@@ -404,7 +405,7 @@ class init_bell:
         """Reference_time is the time of the previous first handstroke in the 'change'"""
         belltimes = np.linspace(reference_time, reference_time + self.target_period, self.nbells*2+2)
         #For steady rounds at the minute
-        next_handstroke = belltimes[-1];
+        next_handstroke = belltimes[-1]
         next_backstroke = belltimes[self.nbells]
 
         return next_handstroke, next_backstroke
@@ -413,7 +414,7 @@ class init_bell:
         #Evaulate overall performance based on accuracies
         alpha = 2
         force_fraction = 1.5 #Force MULTIPLIER as it's being a bit MHA
-        worst_time = 0.5      #If out by more than this it's not worth thinking about
+        worst_time = 1.0      #If out by more than this it's not worth thinking about
         overall_forces = np.sum(np.array(self.forces))/len(self.forces)
 
         handstrokes = 0
@@ -439,11 +440,21 @@ class init_bell:
                 print('Handstroke SD:', np.sqrt(handstroke_variance)*1000)
                 print('Backstroke SD:', np.sqrt(backstroke_variance)*1000)
 
-        if False:   #Old fitness function
+        if True:   #Old fitness function
             return rhythm*force_mult
 
-        if len(self.all_handstrokes) > 3:
-            return self.all_handstrokes[-1] - self.all_handstrokes[1]
+        hcount = 0
+        bcount = 0
+
+        for hi in range(len(self.handstroke_accuracy) - 1):
+            if np.abs(self.handstroke_accuracy[hi + 1]) < self.strike_limit:
+                hcount += 1
+
+        for bi in range(len(self.backstroke_accuracy) - 1):
+            if np.abs(self.backstroke_accuracy[bi + 1]) < self.strike_limit:
+                bcount += 1
+
+            return hcount + bcount
         else:
             return 0.0
 

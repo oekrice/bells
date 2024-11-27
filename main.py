@@ -267,9 +267,9 @@ async def main():
 
         if count % refresh_rate == 0:
             pygame.display.update()
-        if count % 60 == 0:
+        if count % 120 == 0:
             fitness = bell.fitness_fn(phy, print_accuracy = True)
-            print('Fitness', fitness)
+            #rpint('Fitness', fitness)
             #print(bell.handstroke_accuracy)
             #print(bell.backstroke_accuracy)
 

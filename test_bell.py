@@ -105,11 +105,11 @@ while sim.phy.time < 60*sim.bell.target_period:
     #print(sim.bell.fitness_increment(sim.phy)*60*60)
 
     if len(sim.bell.handstroke_accuracy) > 1:
-        if np.abs(sim.bell.handstroke_accuracy[-1]) > strike_limit:
-            break
-        if len(sim.bell.backstroke_accuracy) > 1:
-            if np.abs(sim.bell.backstroke_accuracy[-1]) > strike_limit:
-                break
+        #if np.abs(sim.bell.handstroke_accuracy[-1]) > strike_limit:
+        #    break
+        #if len(sim.bell.backstroke_accuracy) > 1:
+        #    if np.abs(sim.bell.backstroke_accuracy[-1]) > strike_limit:
+        #        break
         if sim.bell.stay_hit > 0:
             break
 
