@@ -47,7 +47,7 @@ if np.abs(bell.bell_angle) < 0.5:
 else:
     bell.max_length = bell.radius*(1.0 + 3*np.pi/2 - bell.garter_hole)
 
-bell.target_period = 6.0
+bell.target_period = 5.0
 bell.stay_break_limit = 1.0
 
 bell.m_1 = 400
@@ -274,12 +274,16 @@ async def main():
             #print(bell.backstroke_accuracy)
 
         #'Learn as it goes'
-        if count % 10000 == 0:
+        if count % (60*60) == 0:
             # Find current best ringing up
-            if load_num < 0:
-                os.system("scp current_best ./networks/ring_steady")
-            else:
+            if load_num >= 0:
                 os.system("scp ./current_network/%d ./networks/ring_steady" % load_num)
+            else:
+                for i in range(10000):
+                    if not os.path.isfile('./current_network/%d' % (i+1)):
+                        break
+
+                os.system("scp ./current_network/%d ./networks/ring_steady" % i)
 
             nets = Networks()
 

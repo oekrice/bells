@@ -438,11 +438,11 @@ class init_bell:
         if npulls > 2:
             for p in range(npulls):
                 if abs(self.handstroke_accuracy[p+1]) < worst_time:
-                    hstroke = (max(0.0, (worst_time - abs(self.handstroke_accuracy[p+1]))/worst_time)**alpha)
+                    hstroke = (max(0.0, ((worst_time - abs(self.handstroke_accuracy[p+1]))/worst_time))**alpha)
                 else:
                     hstroke = 0.0
                 if abs(self.backstroke_accuracy[p+1]) < worst_time:
-                    bstroke = (max(0.0, (worst_time - abs(self.backstroke_accuracy[p+1]))/worst_time)**alpha)
+                    bstroke = (max(0.0, ((worst_time - abs(self.backstroke_accuracy[p+1]))/worst_time)**alpha))
                 else:
                     bstroke = 0.0
 

@@ -42,7 +42,7 @@ def eval_genome(genome, config):
                 sim.bell.bell_angle = uniform(-np.pi-0.5*sim.bell.stay_angle, -np.pi -sim.bell.stay_angle)
                 sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
 
-            sim.bell.target_period = uniform(5.9,6.1)
+            sim.bell.target_period = uniform(4.0,6.0)
 
             sim.bell.m_1 = uniform(390,410)
             sim.bell.m_2 = 0.05*sim.bell.m_1

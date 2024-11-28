@@ -5,14 +5,14 @@
 [NEAT]
 fitness_criterion     = max
 fitness_threshold     = 60.0
-pop_size              = 200
+pop_size              = 250
 reset_on_extinction   = 0
 
 [DefaultGenome]
 num_inputs              = 7
-num_hidden              = 14
+num_hidden              = 0
 num_outputs             = 1
-initial_connection      = partial_direct 0.5
+initial_connection      = full
 feed_forward            = True
 compatibility_disjoint_coefficient    = 1.0
 compatibility_weight_coefficient      = 0.6
@@ -21,8 +21,8 @@ conn_delete_prob        = 0.5
 node_add_prob           = 0.2
 node_delete_prob        = 0.2
 activation_default      = sigmoid
-activation_options      = sigmoid
-activation_mutate_rate  = 0.0
+activation_options      = sigmoid gauss
+activation_mutate_rate  = 0.2
 aggregation_default     = sum
 aggregation_options     = sum
 aggregation_mutate_rate = 0.0
@@ -55,10 +55,10 @@ enabled_mutate_rate     = 0.01
 compatibility_threshold = 3.0
 
 [DefaultStagnation]
-species_fitness_func = max
-max_stagnation  = 25
+species_fitness_func = mean
+max_stagnation  = 15
 
 [DefaultReproduction]
-elitism            = 1
+elitism            = 0
 survival_threshold = 0.2
 

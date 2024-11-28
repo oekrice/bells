@@ -35,8 +35,8 @@ else:
     with open("./current_network/%d" % (load_num ), "rb") as f:
         c = pickle.load(f)
 
-#print("Loaded genome:")
-#print(c)
+print("Loaded genome:")
+print(c)
 
 # Load the config file, which is assumed to live in
 # the same directory as this script.
@@ -67,7 +67,7 @@ if np.abs(sim.bell.bell_angle) < 0.5:
 else:
     sim.bell.max_length = sim.bell.radius*(1.0 + 3*np.pi/2 - sim.bell.garter_hole)
 
-sim.bell.target_period = 6.0
+sim.bell.target_period = 5.0
 
 sim.bell.m_1 = 400
 sim.bell.m_2 = 0.05*sim.bell.m_1
