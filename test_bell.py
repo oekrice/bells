@@ -53,31 +53,40 @@ sim = run_bell()
 sim.bell.m_1 = uniform(150,550)
 sim.bell.m_2 = 0.05*sim.bell.m_1
 if random.random() < 1.0:
-    sim.bell.bell_angle = np.pi+0.1
+    sim.bell.bell_angle = uniform(np.pi+0.5*sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
     sim.bell.clapper_angle = sim.bell.bell_angle + sim.bell.clapper_limit - 0.01
 else:
-    sim.bell.bell_angle = -np.pi-0.1
+    sim.bell.bell_angle = uniform(-np.pi-0.5*sim.bell.stay_angle, -np.pi -sim.bell.stay_angle)
     sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
 
 #sim.bell.bell_angle = np.pi-0.5
 #sim.bell.target_period = uniform(4.0,5.4)
 
-sim.bell.target_period = 4.7
+if np.abs(sim.bell.bell_angle) < 0.5:
+    sim.bell.max_length = 0.0  # max backstroke length
+else:
+    sim.bell.max_length = sim.bell.radius*(1.0 + 3*np.pi/2 - sim.bell.garter_hole)
+
+sim.bell.target_period = 5.0
 
 sim.bell.m_1 = 400
 sim.bell.m_2 = 0.05*sim.bell.m_1
 
-print('Target period', sim.bell.target_period )
+sim.bell.stay_break_limit = 0.4
+
+#print('Target period', sim.bell.target_period )
 angles_log = [sim.bell.bell_angle]
 velocities_log = [sim.bell.velocity]
 
-print()
-print("Initial conditions:")
-print("    angle = {0:.4f}".format(sim.bell.bell_angle))
-print(" velocity = {0:.4f}".format(sim.bell.velocity))
-print(" bell mass = {0:.4f}".format(sim.bell.m_1))
+#print()
+#print("Initial conditions:")
+#print("    angle = {0:.4f}".format(sim.bell.bell_angle))
+#print(" velocity = {0:.4f}".format(sim.bell.velocity))
+#print(" bell mass = {0:.4f}".format(sim.bell.m_1))
 
 fitness = 0
+strike_limit = 5.0
+
 while sim.phy.time < 60*sim.bell.target_period:
     inputs = sim.get_scaled_state()
     action = net.activate(inputs)
@@ -95,18 +104,26 @@ while sim.phy.time < 60*sim.bell.target_period:
     fitness = fitness + sim.bell.fitness_increment(sim.phy)
     #print(sim.bell.fitness_increment(sim.phy)*60*60)
 
-print(sim.bell.handstroke_accuracy)
-print(sim.bell.backstroke_accuracy)
+    if len(sim.bell.handstroke_accuracy) > 1:
+        #if np.abs(sim.bell.handstroke_accuracy[-1]) > strike_limit:
+        #    break
+        #if len(sim.bell.backstroke_accuracy) > 1:
+        #    if np.abs(sim.bell.backstroke_accuracy[-1]) > strike_limit:
+        #        break
+        if sim.bell.stay_hit > 0:
+            break
+
+#print(sim.bell.handstroke_accuracy)
+#print(sim.bell.backstroke_accuracy)
 #print(sim.bell.forces)
-fitness = sim.bell.fitness_fn()
+fitness = sim.bell.fitness_fn(sim.phy, print_accuracy = True)
 print("fitness", fitness)
 
-print()
-print("Final conditions:")
-print("    angle = {0:.4f}".format(sim.bell.bell_angle))
-print(" velocity = {0:.4f}".format(sim.bell.velocity))
-print()
-
+#print()
+#print("Final conditions:")
+#print("    angle = {0:.4f}".format(sim.bell.bell_angle))
+#print(" velocity = {0:.4f}".format(sim.bell.velocity))
+#
 plt.plot(sim.bell.times, angles_log)
 plt.plot(sim.bell.times, 0.0*np.ones(len(sim.bell.times)),linestyle = 'dotted')
 plt.plot(sim.bell.times, np.pi*np.ones(len(sim.bell.times)),linestyle = 'dashed')
@@ -147,13 +164,14 @@ def plot_forces():
     plt.savefig('network_graphs/%04d.png' % load_num)
     if load_num < 0:
         plt.show()
+    #plt.show()
     plt.close()
 
 plot_forces()
 
 def plot_rounds():
     #Plots the bell's ability in plot_rounds
-    fig = plt.figure(figsize = (2,10))
+    fig = plt.figure(figsize = (2,8))
     try:
 
         nbells = sim.bell.nbells
@@ -183,7 +201,7 @@ def plot_rounds():
         for b in range(nbells):
             plt.plot(alltimes[b], rows, c= 'black', linewidth = 0.5)
 
-        bell_num = 3   #Number in the change (doesn't matter for now really apart from the plot
+        bell_num = 4   #Number in the change (doesn't matter for now really apart from the plot
 
         #Plot the accuracies
         sim.bell.handstroke_accuracy[0] = 0.0
@@ -209,6 +227,7 @@ def plot_rounds():
     plt.savefig('rounds_graphs/%04d.png' % load_num)
     if load_num < 0:
         plt.show()
+    #plt.show()
     plt.close()
 
 plot_rounds()

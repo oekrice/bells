@@ -8,7 +8,6 @@ from neat.math_util import stat_functions
 
 # TODO: Add a method for the user to change the "is stagnant" computation.
 
-
 class DefaultStagnation(DefaultClassConfig):
     """Keeps track of whether species are making progress and helps remove ones that are not."""
 
@@ -33,7 +32,7 @@ class DefaultStagnation(DefaultClassConfig):
 
         self.reporters = reporters
 
-    def update(self, species_set, generation):
+    def update(self, species_set, generation, reset_stagnation = False):
         """
         Required interface method. Updates species fitness history information,
         checking for ones that have not improved in max_stagnation generations,
@@ -44,6 +43,10 @@ class DefaultStagnation(DefaultClassConfig):
         """
         species_data = []
         for sid, s in species_set.species.items():
+
+            if reset_stagnation:
+                s.fitness_history = []
+
             if s.fitness_history:
                 prev_fitness = max(s.fitness_history)
             else:
@@ -53,6 +56,9 @@ class DefaultStagnation(DefaultClassConfig):
             s.fitness_history.append(s.fitness)
             s.adjusted_fitness = None
             if prev_fitness is None or s.fitness > prev_fitness:
+                s.last_improved = generation
+
+            if reset_stagnation:
                 s.last_improved = generation
 
             species_data.append((sid, s))

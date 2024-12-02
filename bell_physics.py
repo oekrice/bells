@@ -71,9 +71,12 @@ class init_bell:
         self.backstroke_pull = 1.0  # length of backstroke pull in metres
 
         self.prev_angle = init_angle  # previous maximum angle
-        self.max_length = 0.0  # max backstroke length
 
         self.rlength, self.effect_force = self.ropelength()
+        if np.abs(self.bell_angle) < 0.5:
+            self.max_length = 0.0  # max backstroke length
+        else:
+            self.max_length = self.radius*(1.0 + 3*np.pi/2 - self.garter_hole)
         self.rlengths = []
         self.effect_forces = []
 
@@ -124,6 +127,7 @@ class init_bell:
         self.next_handstroke = self.target_period
         self.next_backstroke = self.target_period/2
 
+        self.strike_limit = 100
 
     def timestep(self, phy):
         # Do the timestep here, using only bell.force, which comes either from an input or the machine
@@ -352,9 +356,9 @@ class init_bell:
         if False:  #Target is based on previous same stroke
             self.backstroke_target = self.all_backstrokes[-1] + self.target_period - phy.time
             self.handstroke_target = self.all_handstrokes[-1] + self.target_period - phy.time
-        elif False:
-            self.backstroke_target = self.all_handstrokes[-1] + 0.5*self.target_period - phy.time
-            self.handstroke_target = self.all_backstrokes[-1] + 0.5*self.target_period - phy.time
+        elif True:
+            self.backstroke_target = self.all_handstrokes[-1] + self.nbells/(self.nbells*2 + 1)*self.target_period - phy.time
+            self.handstroke_target = self.all_backstrokes[-1] + (self.nbells + 1)/(self.nbells*2 + 1)*self.target_period - phy.time
         else:  #Receive info from the rhythm function
             self.backstroke_target = self.next_backstroke - phy.time
             self.handstroke_target = self.next_handstroke - phy.time
@@ -363,7 +367,6 @@ class init_bell:
         # Outputs the length of the rope above the garter hole, relative to the minimum.
         # Also outputs the maximum force available with direction.
         hole_angle = self.bell_angle - np.pi + self.garter_hole
-
         if hole_angle > 0.0:
             # Fully Handstroke
             length = self.radius * hole_angle + self.radius
@@ -402,16 +405,16 @@ class init_bell:
         """Reference_time is the time of the previous first handstroke in the 'change'"""
         belltimes = np.linspace(reference_time, reference_time + self.target_period, self.nbells*2+2)
         #For steady rounds at the minute
-        next_handstroke = belltimes[-1];
+        next_handstroke = belltimes[-1]
         next_backstroke = belltimes[self.nbells]
 
         return next_handstroke, next_backstroke
 
-    def fitness_fn(self, print_accuracy = False):
+    def fitness_fn(self, phy, print_accuracy = False):
         #Evaulate overall performance based on accuracies
         alpha = 2
-        force_fraction = 1.5 #Force MULTIPLIER as it's being a bit MHA
-        worst_time = 0.5      #If out by more than this it's not worth thinking about
+        force_fraction = 1.25 #Force MULTIPLIER as it's being a bit MHA
+        worst_time = 1.0      #If out by more than this it's not worth thinking about
         overall_forces = np.sum(np.array(self.forces))/len(self.forces)
 
         handstrokes = 0
@@ -426,17 +429,54 @@ class init_bell:
                 backstrokes += (max(0.0, (worst_time - abs(self.backstroke_accuracy[b+1]))/worst_time)**alpha)
             backstrokes = backstrokes/(len(self.backstroke_accuracy)-1)
 
-        force_mult = 1.0 + (force_fraction - 1.0)*(1.0-overall_forces)**alpha
-        rhythm = 0.5*(1.0/force_fraction)*(handstrokes + backstrokes)
+        #Use the worst out of either stroke -- currently just favouring getting one of them bang on
+        #Do not use the first of either back or hand
 
-        if len(self.handstroke_accuracy) > 0 and len(self.backstroke_accuracy) > 0:
-            handstroke_variance = np.sum(np.array(self.handstroke_accuracy)**2)/len(self.handstroke_accuracy)
-            backstroke_variance = np.sum(np.array(self.backstroke_accuracy)**2)/len(self.backstroke_accuracy)
+        npulls = min(len(self.handstroke_accuracy), len(self.backstroke_accuracy)) - 1
+        striking = 0
+
+        if npulls > 2:
+            for p in range(npulls):
+                if abs(self.handstroke_accuracy[p+1]) < worst_time:
+                    hstroke = (max(0.0, ((worst_time - abs(self.handstroke_accuracy[p+1]))/worst_time))**alpha)
+                else:
+                    hstroke = 0.0
+                if abs(self.backstroke_accuracy[p+1]) < worst_time:
+                    bstroke = (max(0.0, ((worst_time - abs(self.backstroke_accuracy[p+1]))/worst_time)**alpha))
+                else:
+                    bstroke = 0.0
+
+                striking += min(hstroke, bstroke)
+            striking = striking/npulls
+
+        force_mult = 1.0 + (force_fraction - 1.0)*(1.0-overall_forces)**alpha
+        rhythm = (1.0/force_fraction)*(striking)
+
+        if len(self.handstroke_accuracy) > 1 and len(self.backstroke_accuracy) > 1:
+            handstroke_variance = np.sum(np.array(self.handstroke_accuracy[1:])**2)/(len(self.handstroke_accuracy)-1)
+            backstroke_variance = np.sum(np.array(self.backstroke_accuracy[1:])**2)/(len(self.backstroke_accuracy)-1)
 
             if print_accuracy:
                 print('Handstroke SD:', np.sqrt(handstroke_variance)*1000)
                 print('Backstroke SD:', np.sqrt(backstroke_variance)*1000)
-        return rhythm*force_mult
+
+        if True:   #Old fitness function
+            return rhythm*force_mult
+
+        hcount = 0
+        bcount = 0
+
+        for hi in range(len(self.handstroke_accuracy) - 1):
+            if np.abs(self.handstroke_accuracy[hi + 1]) < self.strike_limit:
+                hcount += 1
+
+        for bi in range(len(self.backstroke_accuracy) - 1):
+            if np.abs(self.backstroke_accuracy[bi + 1]) < self.strike_limit:
+                bcount += 1
+
+            return hcount + bcount
+        else:
+            return 0.0
 
     def fitness_increment(self, phy):
         """Fitness function at a given time rather than evaulating after the fact"""

@@ -16,11 +16,14 @@ import random
 
 runs_per_net = 25
 simulation_seconds = 60.0
-ngenerations = 10000
+ngenerations = 5000
 
-for i in range(0,10000):
-    if os.path.isfile('./current_network/%d' % i):
-        os.remove('./current_network/%d' % i)
+use_existing_population = True #Load an existing network that is presumably better than nothing
+
+if not use_existing_population:
+    for i in range(0,10000):
+        if os.path.isfile('./current_network/%d' % i):
+            os.remove('./current_network/%d' % i)
 
 # Use the NN network phenotype and the discrete actuator force function.
 def eval_genome(genome, config):
@@ -31,69 +34,24 @@ def eval_genome(genome, config):
     for runs in range(runs_per_net):
         sim = run_bell()  # all the physics in here
 
-        if False:   #initial conditions for ringing down
-            if random.random() < 0.3:   #pick a random angle
-                sim.bell.bell_angle = uniform(-np.pi-sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
-                sim.bell.clapper_angle = sim.bell.bell_angle
-            else:
-                if random.random() < 0.5:   #important that it can get itself off at hand and back
-                    sim.bell.bell_angle = uniform(np.pi+0.95*sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
-                    sim.bell.clapper_angle = sim.bell.bell_angle + sim.bell.clapper_limit - 0.01
-                else:
-                    sim.bell.bell_angle = uniform(-np.pi-0.95*sim.bell.stay_angle, -np.pi-sim.bell.stay_angle)
-                    sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
-            sim.bell.velocity = 0.0
-
-        elif False:   #Initial conditions for ringing up. Aiming for HANDSTROKE.
-            #Pretty certain to get an eventuality if chance is above 0.35
-            sim.bell.m_1 = uniform(150,550)
-            sim.bell.m_2 = 0.05*sim.bell.m_1
-            if runs < int(runs_per_net/2):
-                sim.bell.bell_angle = uniform(-np.pi-sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
-                sim.bell.clapper_angle = sim.bell.bell_angle*1.05
-                xd = sim.bell.bell_angle/(np.pi)
-                if abs(xd) > 1:
-                    sim.bell.velocity = 0.0
-                else:
-                    yd = abs(1.0 - abs(xd))
-                    sim.bell.velocity = uniform(-5.0*yd,5.0*yd)
-            else:
-                if runs < int(runs_per_net/10):   #Bell is up on the wrong stroke
-                    sim.bell.bell_angle = uniform(-np.pi-0.95*sim.bell.stay_angle, -np.pi-sim.bell.stay_angle)
-                    sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
-                    sim.bell.velocity = 0.0
-                else:   #Bell is completely down
-                    sim.bell.bell_angle = 0.0
-                    sim.bell.clapper_angle = sim.bell.bell_angle
-                    sim.bell.velocity = 0.0
-            sim.bell.clapper_velocity = sim.bell.velocity
-
-        elif False:   #More general conditions for the averaged approach. Bell can appear anywhere and at any velocity within the envelope.
-            sim.bell.m_1 = uniform(200,500)
-            sim.bell.m_2 = 0.05*sim.bell.m_1
-            sim.bell.bell_angle = uniform(-np.pi-sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
-            sim.bell.clapper_angle = sim.bell.bell_angle*1.05
-            xd = sim.bell.bell_angle/(np.pi)
-            if abs(xd) > 1:
-                sim.bell.velocity = 0.0
-            else:
-                yd = (1.0 - abs(xd))
-                sim.bell.velocity = uniform(-5.0*yd,5.0*yd)
-
-        elif True:   #Conditions for general ringing. Start stood at each stroke I think, but might change that.
-            sim.bell.m_1 = uniform(150,550)
-            sim.bell.m_2 = 0.05*sim.bell.m_1
-            if runs < int(runs_per_net/2):
-                sim.bell.bell_angle = uniform(np.pi+0.01*sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
+        if True:   #Conditions for general ringing. Start stood at each stroke I think, but might change that.
+            if True:#runs < int(runs_per_net/2):
+                sim.bell.bell_angle = uniform(np.pi+0.5*sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
                 sim.bell.clapper_angle = sim.bell.bell_angle + sim.bell.clapper_limit - 0.01
             else:
-                sim.bell.bell_angle = uniform(-np.pi-0.01*sim.bell.stay_angle, -np.pi-sim.bell.stay_angle)
+                sim.bell.bell_angle = uniform(-np.pi-0.5*sim.bell.stay_angle, -np.pi -sim.bell.stay_angle)
                 sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
-            sim.bell.target_period = uniform(4.0,5.5)
 
-            sim.bell.m_1 = 400
+            sim.bell.target_period = uniform(4.0,6.0)
+
+            sim.bell.m_1 = uniform(390,410)
             sim.bell.m_2 = 0.05*sim.bell.m_1
             sim.bell.stay_break_limit = 0.4
+
+        if np.abs(sim.bell.bell_angle) < 0.5:
+            sim.bell.max_length = 0.0  # max backstroke length
+        else:
+            sim.bell.max_length = sim.bell.radius*(1.0 + 3*np.pi/2 - sim.bell.garter_hole)
 
         # Run the given simulation for up to num_steps time steps.
         fitness = 0.0
@@ -108,8 +66,19 @@ def eval_genome(genome, config):
             sim.bell.pull = force
             sim.step(force)
 
-            fitness = fitness + sim.bell.fitness_increment(sim.phy)
-        fitness = sim.bell.fitness_fn()
+            strike_limit = 1.0#5 seconds out in each direction to begin with
+            sim.bell.strike_limit = strike_limit
+            #Exit if out of bounds
+            if len(sim.bell.handstroke_accuracy) > 1:
+                #if np.abs(sim.bell.handstroke_accuracy[-1]) > strike_limit:
+                #    break
+                #if len(sim.bell.backstroke_accuracy) > 1:
+                #    if np.abs(sim.bell.backstroke_accuracy[-1]) > strike_limit:
+                #        break
+                if sim.bell.stay_hit > 0:
+                    break
+
+        fitness = sim.bell.fitness_fn(sim.phy)
 
         fitnesses.append(fitness)
     # The genome's fitness is now its average.
@@ -130,7 +99,17 @@ def run():
     # Load in config file. Will tweak in due course.
     config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet, neat.DefaultStagnation, config_path)
 
-    pop = neat.Population(config)
+    if use_existing_population:
+        with open("population_data/population", "rb") as f:
+            pop_old = pickle.load(f)
+        with open("population_data/species", "rb") as f:
+            species_old = pickle.load(f)
+        with open("population_data/generation", "rb") as f:
+            generation_old = pickle.load(f)
+        initial_state = (pop_old, species_old, generation_old)
+        pop = neat.Population(config, initial_state = initial_state)
+    else:
+        pop = neat.Population(config)
     # These just print some things out. But keep on...
     stats = neat.StatisticsReporter()
     pop.add_reporter(stats)

@@ -35,38 +35,23 @@ pygame.init()
 phy = init_physics()
 bell = init_bell(phy, 0.0)
 
-if random.random() < 0.0:  # pick a random angle
-    bell.bell_angle = uniform(-np.pi - bell.stay_angle, np.pi + bell.stay_angle)
-    bell.clapper_angle = bell.bell_angle
-else:
-    if random.random() < 0.0:  # important that it can get itself off at hand and back
-        bell.bell_angle = uniform(np.pi + 0.95 * bell.stay_angle, np.pi + bell.stay_angle)
-        bell.clapper_angle = bell.bell_angle + bell.clapper_limit - 0.01
-    else:
-        bell.bell_angle = uniform(-np.pi - 0.95 * bell.stay_angle, -np.pi - bell.stay_angle)
-        bell.clapper_angle = bell.bell_angle - bell.clapper_limit + 0.01
-
-bell.m_1 = uniform(200,500)
-bell.m_1 = 400
-bell.m_2 = 0.05*bell.m_1
-
-#bell.m_1 = uniform(150,550)
-bell.m_1 = 400
-bell.m_2 = 0.05*bell.m_1
-#
-
-if True:
-    bell.bell_angle = uniform(-np.pi-0.95*bell.stay_angle, -np.pi-bell.stay_angle)
-    bell.clapper_angle = bell.bell_angle - bell.clapper_limit + 0.01
-else:
-    bell.bell_angle = uniform(np.pi+0.95*bell.stay_angle, np.pi+bell.stay_angle)
+if random.random() < 1.0:
+    bell.bell_angle = uniform(np.pi+0.5*bell.stay_angle, np.pi+bell.stay_angle)
     bell.clapper_angle = bell.bell_angle + bell.clapper_limit - 0.01
+else:
+    bell.bell_angle = uniform(-np.pi-0.5*bell.stay_angle, -np.pi -bell.stay_angle)
+    bell.clapper_angle = bell.bell_angle - bell.clapper_limit + 0.01
 
-bell.bell_angle = np.pi + 0.01
-bell.clapper_angle = bell.bell_angle + bell.clapper_limit - 0.01
+if np.abs(bell.bell_angle) < 0.5:
+    bell.max_length = 0.0  # max backstroke length
+else:
+    bell.max_length = bell.radius*(1.0 + 3*np.pi/2 - bell.garter_hole)
 
-bell.target_period = 4.7
+bell.target_period = 5.0
 bell.stay_break_limit = 1.0
+
+bell.m_1 = 400
+bell.m_2 = 0.05*bell.m_1
 
 print('Bell mass', bell.m_1)
 
@@ -124,6 +109,7 @@ nets = Networks()
 
 refresh_rate = 2
 
+strike_limit = 1.0
 async def main():
 
     fpsClock = pygame.time.Clock()
@@ -197,9 +183,9 @@ async def main():
             # if abs(bell.bell_angle) > bell.sound_angle and abs(bell.prev_angle) <= bell.sound_angle:
             bell.sound.play()
             if bell.bell_angle > 0:
-                print(bell.backstroke_target)
+                print('Back', bell.backstroke_target)
             else:
-                print(bell.handstroke_target)
+                print('Hand', bell.handstroke_target)
             # continue
         # Check for force on wheel - this takes effect at the next timestep
 
@@ -262,6 +248,7 @@ async def main():
                         bell.max_length = 0.0  # max backstroke length
                         bell.stay_angle = 0.15
 
+
             if event.type == QUIT:
                 pygame.quit()
                 return
@@ -280,16 +267,23 @@ async def main():
 
         if count % refresh_rate == 0:
             pygame.display.update()
-        if count % 60 == 0:
-            fitness = bell.fitness_fn(print_accuracy = True)
-            print('Fitness', fitness)
+        if count % 120 == 0:
+            fitness = bell.fitness_fn(phy, print_accuracy = True)
+            #rpint('Fitness', fitness)
+            #print(bell.handstroke_accuracy)
+            #print(bell.backstroke_accuracy)
+
         #'Learn as it goes'
-        if count % 10000 == 0:
+        if count % (60*60) == 0:
             # Find current best ringing up
-            if load_num < 0:
-                os.system("scp current_best ./networks/ring_steady")
-            else:
+            if load_num >= 0:
                 os.system("scp ./current_network/%d ./networks/ring_steady" % load_num)
+            else:
+                for i in range(10000):
+                    if not os.path.isfile('./current_network/%d' % (i+1)):
+                        break
+
+                os.system("scp ./current_network/%d ./networks/ring_steady" % i)
 
             nets = Networks()
 
