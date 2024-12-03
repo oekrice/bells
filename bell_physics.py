@@ -107,6 +107,7 @@ class init_bell:
         self.stay_break_limit = 1.0
 
         self.bell_angles = []
+        self.velocities = []
         self.forces = []
         self.times = [0.0]
         self.stay_hit = 0
@@ -348,6 +349,7 @@ class init_bell:
         phy.time = phy.time + phy.dt
         self.times.append(phy.time)
         self.bell_angles.append(self.bell_angle)
+        self.velocities.append(self.velocity)
         self.forces.append(self.pull)
 
     def time_targets(self, phy):
@@ -396,7 +398,7 @@ class init_bell:
         pb = self.last_backstroke/10.0     #Time since last stroke
         ph = self.last_handstroke/10.0
 
-        return [self.bell_angle / (np.pi + self.stay_angle), self.velocity / (10.0), self.m_1/1000, bt, ht, pb, ph]
+        return [self.bell_angle / (np.pi + self.stay_angle), self.velocity / (10.0), bt, ht, self.m_1/1000, pb, ph]
 
     def establish_rhythm(self, reference_time):
         """Estalishes the desired times for each stroke"""
@@ -411,78 +413,98 @@ class init_bell:
         return next_handstroke, next_backstroke
 
     def fitness_fn(self, phy, print_accuracy = False):
-        #Evaulate overall performance based on accuracies
-        alpha = 2
-        force_fraction = 1.25 #Force MULTIPLIER as it's being a bit MHA
-        worst_time = 1.0      #If out by more than this it's not worth thinking about
-        overall_forces = np.sum(np.array(self.forces))/len(self.forces)
+        if False:
+            #Evaulate overall performance based on accuracies
+            alpha = 2
+            force_fraction = 1.25 #Force MULTIPLIER as it's being a bit MHA
+            worst_time = 1.0      #If out by more than this it's not worth thinking about
+            overall_forces = np.sum(np.array(self.forces))/len(self.forces)
 
-        handstrokes = 0
-        if len(self.handstroke_accuracy) > 4:  #Punish if it can't get off the stay
-            for h in range(len(self.handstroke_accuracy)-1):
-                handstrokes += (max(0.0, (worst_time - abs(self.handstroke_accuracy[h+1]))/worst_time)**alpha)
-            handstrokes = handstrokes/(len(self.handstroke_accuracy)-1)
+            handstrokes = 0
+            if len(self.handstroke_accuracy) > 4:  #Punish if it can't get off the stay
+                for h in range(len(self.handstroke_accuracy)-1):
+                    handstrokes += (max(0.0, (worst_time - abs(self.handstroke_accuracy[h+1]))/worst_time)**alpha)
+                handstrokes = handstrokes/(len(self.handstroke_accuracy)-1)
 
-        backstrokes = 0
-        if len(self.backstroke_accuracy) > 4:
-            for b in range(len(self.backstroke_accuracy)-1):
-                backstrokes += (max(0.0, (worst_time - abs(self.backstroke_accuracy[b+1]))/worst_time)**alpha)
-            backstrokes = backstrokes/(len(self.backstroke_accuracy)-1)
+            backstrokes = 0
+            if len(self.backstroke_accuracy) > 4:
+                for b in range(len(self.backstroke_accuracy)-1):
+                    backstrokes += (max(0.0, (worst_time - abs(self.backstroke_accuracy[b+1]))/worst_time)**alpha)
+                backstrokes = backstrokes/(len(self.backstroke_accuracy)-1)
 
-        #Use the worst out of either stroke -- currently just favouring getting one of them bang on
-        #Do not use the first of either back or hand
+            #Use the worst out of either stroke -- currently just favouring getting one of them bang on
+            #Do not use the first of either back or hand
 
-        npulls = min(len(self.handstroke_accuracy), len(self.backstroke_accuracy)) - 1
-        striking = 0
+            npulls = min(len(self.handstroke_accuracy), len(self.backstroke_accuracy)) - 1
+            striking = 0
 
-        if npulls > 2:
-            for p in range(npulls):
-                if abs(self.handstroke_accuracy[p+1]) < worst_time:
-                    hstroke = (max(0.0, ((worst_time - abs(self.handstroke_accuracy[p+1]))/worst_time))**alpha)
-                else:
-                    hstroke = 0.0
-                if abs(self.backstroke_accuracy[p+1]) < worst_time:
-                    bstroke = (max(0.0, ((worst_time - abs(self.backstroke_accuracy[p+1]))/worst_time)**alpha))
-                else:
-                    bstroke = 0.0
+            if npulls > 2:
+                for p in range(npulls):
+                    if abs(self.handstroke_accuracy[p+1]) < worst_time:
+                        hstroke = (max(0.0, ((worst_time - abs(self.handstroke_accuracy[p+1]))/worst_time))**alpha)
+                    else:
+                        hstroke = 0.0
+                    if abs(self.backstroke_accuracy[p+1]) < worst_time:
+                        bstroke = (max(0.0, ((worst_time - abs(self.backstroke_accuracy[p+1]))/worst_time)**alpha))
+                    else:
+                        bstroke = 0.0
 
-                striking += min(hstroke, bstroke)
-            striking = striking/npulls
+                    striking += min(hstroke, bstroke)
+                striking = striking/npulls
 
-        force_mult = 1.0 + (force_fraction - 1.0)*(1.0-overall_forces)**alpha
-        rhythm = (1.0/force_fraction)*(striking)
+            force_mult = 1.0 + (force_fraction - 1.0)*(1.0-overall_forces)**alpha
+            rhythm = (1.0/force_fraction)*(striking)
 
-        if len(self.handstroke_accuracy) > 1 and len(self.backstroke_accuracy) > 1:
-            handstroke_variance = np.sum(np.array(self.handstroke_accuracy[1:])**2)/(len(self.handstroke_accuracy)-1)
-            backstroke_variance = np.sum(np.array(self.backstroke_accuracy[1:])**2)/(len(self.backstroke_accuracy)-1)
+            if len(self.handstroke_accuracy) > 1 and len(self.backstroke_accuracy) > 1:
+                handstroke_variance = np.sum(np.array(self.handstroke_accuracy[1:])**2)/(len(self.handstroke_accuracy)-1)
+                backstroke_variance = np.sum(np.array(self.backstroke_accuracy[1:])**2)/(len(self.backstroke_accuracy)-1)
 
+                if print_accuracy:
+                    print('Handstroke SD:', np.sqrt(handstroke_variance)*1000)
+                    print('Backstroke SD:', np.sqrt(backstroke_variance)*1000)
+
+            if True:   #Old fitness function
+                return rhythm*force_mult
+
+            hcount = 0
+            bcount = 0
+
+            for hi in range(len(self.handstroke_accuracy) - 1):
+                if np.abs(self.handstroke_accuracy[hi + 1]) < self.strike_limit:
+                    hcount += 1
+
+            for bi in range(len(self.backstroke_accuracy) - 1):
+                if np.abs(self.backstroke_accuracy[bi + 1]) < self.strike_limit:
+                    bcount += 1
+
+                return hcount + bcount
+            else:
+                return 0.0
+
+        else:   #Ringing down overall performance -- only caring about end result once the rest has been optimised and the bell is ringing down reasonably well
+            alpha = 2
+            max_angle = 1e-1
+            final_angle = (max(0., (max_angle - np.abs(self.bell_angle))/max_angle)**alpha)
+            max_velocity = 1e-1
+            final_velocity = (max(0., (max_velocity - np.abs(self.velocity))/max_velocity)**alpha)
+            max_clapper = 0.6
+
+            final_clapper_angle = (max(0., (max_clapper - np.abs(self.clapper_angle) - np.abs(self.clapper_velocity))/max_clapper)**alpha)
+
+            max_force = 0.1
+            final_force =( max(0., (max_force - np.abs(self.pull))/max_force)**alpha)
             if print_accuracy:
-                print('Handstroke SD:', np.sqrt(handstroke_variance)*1000)
-                print('Backstroke SD:', np.sqrt(backstroke_variance)*1000)
+                print('Final stats', self.bell_angle, self.velocity, self.clapper_angle + self.clapper_velocity, self.pull)
+                print('Final stats applied', final_angle, final_velocity, final_clapper_angle, final_force)
+            return 0.4*final_angle + 0.4*final_velocity + 0.0*final_clapper_angle + 0.2*final_force
 
-        if True:   #Old fitness function
-            return rhythm*force_mult
-
-        hcount = 0
-        bcount = 0
-
-        for hi in range(len(self.handstroke_accuracy) - 1):
-            if np.abs(self.handstroke_accuracy[hi + 1]) < self.strike_limit:
-                hcount += 1
-
-        for bi in range(len(self.backstroke_accuracy) - 1):
-            if np.abs(self.backstroke_accuracy[bi + 1]) < self.strike_limit:
-                bcount += 1
-
-            return hcount + bcount
-        else:
-            return 0.0
 
     def fitness_increment(self, phy):
         """Fitness function at a given time rather than evaulating after the fact"""
         """Must multiply by dt/tmax or equivalent"""
         mult = 60.0 * phy.FPS
-        if False:  # RINGING DOWN
+        if True:  # RINGING DOWN
+
             if np.abs(self.bell_angle) > np.pi:
                 # Bell is over the balance
                 over_balance = True
@@ -500,6 +522,7 @@ class init_bell:
             fitness_increment = fitness_increment/(self.stay_hit + 1)
 
             return fitness_increment/mult
+
 
         else:   #RINGING UP
             if self.bell_angle > np.pi and self.stay_hit == 0:

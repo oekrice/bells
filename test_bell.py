@@ -52,7 +52,8 @@ sim = run_bell()
 
 sim.bell.m_1 = uniform(150,550)
 sim.bell.m_2 = 0.05*sim.bell.m_1
-if random.random() < 1.0:
+
+if random.random() < 0.5:
     sim.bell.bell_angle = uniform(np.pi+0.5*sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
     sim.bell.clapper_angle = sim.bell.bell_angle + sim.bell.clapper_limit - 0.01
 else:
@@ -88,7 +89,7 @@ fitness = 0
 strike_limit = 5.0
 
 while sim.phy.time < 60*sim.bell.target_period:
-    inputs = sim.get_scaled_state()
+    inputs = sim.get_scaled_state()[:2]
     action = net.activate(inputs)
 
     # Apply action to the simulated cart-pole
@@ -120,10 +121,10 @@ fitness = sim.bell.fitness_fn(sim.phy, print_accuracy = True)
 print("fitness", fitness)
 
 #print()
-#print("Final conditions:")
-#print("    angle = {0:.4f}".format(sim.bell.bell_angle))
-#print(" velocity = {0:.4f}".format(sim.bell.velocity))
-#
+print("Final conditions:")
+print("    angle = {0:.4f}".format(sim.bell.bell_angle))
+print(" velocity = {0:.4f}".format(sim.bell.velocity))
+
 plt.plot(sim.bell.times, angles_log)
 plt.plot(sim.bell.times, 0.0*np.ones(len(sim.bell.times)),linestyle = 'dotted')
 plt.plot(sim.bell.times, np.pi*np.ones(len(sim.bell.times)),linestyle = 'dashed')

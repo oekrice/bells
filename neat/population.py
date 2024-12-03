@@ -149,6 +149,18 @@ class Population(object):
                 with open("current_best", "wb") as f:
                     pickle.dump(self.best_genome, f)
 
+                with open("./population_data/population_best", "wb") as f:
+                    pickle.dump(self.population, f)
+
+                with open("./population_data/species_best", "wb") as f:
+                    pickle.dump(self.species, f)
+
+                with open("./population_data/generation_best", "wb") as f:
+                    pickle.dump(self.generation, f)
+
+                with open("./population_data/config_best", "wb") as f:
+                    pickle.dump(self.config, f)
+
             with open("./population_data/population", "wb") as f:
                 pickle.dump(self.population, f)
 

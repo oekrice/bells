@@ -7,7 +7,7 @@ Created on Thu Aug 29 10:03:56 2024
 
 import asyncio
 
-# import nest_asyncio
+import nest_asyncio
 
 import pygame, sys
 from pygame.locals import *
@@ -22,7 +22,7 @@ import sys
 from bell_physics import init_bell, init_physics
 from display import display_tools
 
-if False:
+if True:
     nest_asyncio.apply()
 
 if len(sys.argv) > 1:
@@ -35,7 +35,7 @@ pygame.init()
 phy = init_physics()
 bell = init_bell(phy, 0.0)
 
-if random.random() < 1.0:
+if random.random() < 0.5:
     bell.bell_angle = uniform(np.pi+0.5*bell.stay_angle, np.pi+bell.stay_angle)
     bell.clapper_angle = bell.bell_angle + bell.clapper_limit - 0.01
 else:
@@ -80,9 +80,9 @@ class Networks:
         with open("networks/ring_down", "rb") as f:
             down = pickle.load(f)
         self.down = neat.nn.FeedForwardNetwork.create(down, config)
+        print(down)
         with open("networks/ring_steady", "rb") as f:
             steady = pickle.load(f)
-            print(steady)
         self.steady = neat.nn.FeedForwardNetwork.create(steady, config)
 
 if False:
@@ -91,13 +91,13 @@ if False:
         os.system("scp current_best ./networks/ring_up")
     else:
         os.system("scp ./current_network/%d ./networks/ring_up" % load_num)
-if False:
+if True:
     # Find current best ringing up
     if load_num < 0:
         os.system("scp current_best ./networks/ring_down")
     else:
         os.system("scp ./current_network/%d ./networks/ring_down" % load_num)
-if True:
+if False:
     # Find current best ringing up
     if load_num < 0:
         os.system("scp current_best ./networks/ring_steady")
@@ -133,12 +133,12 @@ async def main():
             force = 1.0
 
         if ring_up:
-            inputs = bell.get_scaled_state()
+            inputs = bell.get_scaled_state()[:2]
             action = nets.up.activate(inputs)
             force = min(1.0, force + action[0])
 
         if ring_down:
-            inputs = bell.get_scaled_state()
+            inputs = bell.get_scaled_state()[:2]
             action = nets.down.activate(inputs)
             force = min(1.0, force + action[0])
 
@@ -274,18 +274,18 @@ async def main():
             #print(bell.backstroke_accuracy)
 
         #'Learn as it goes'
-        if count % (60*60) == 0:
+        if count % (60*60) == -1:
             # Find current best ringing up
             if load_num >= 0:
-                os.system("scp ./current_network/%d ./networks/ring_steady" % load_num)
+                os.system("scp ./current_network/%d ./networks/ring_down" % load_num)
             else:
                 for i in range(10000):
                     if not os.path.isfile('./current_network/%d' % (i+1)):
                         break
 
-                os.system("scp ./current_network/%d ./networks/ring_steady" % i)
+                os.system("scp ./current_network/%d ./networks/ring_down" % i)
 
-            nets = Networks()
+            #nets = Networks()
 
         count += 1
 

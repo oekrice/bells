@@ -18,8 +18,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 successes = []; genomes = []
-ngenomes = 2000
-for genome_test_number in range(ngenomes):
+ngenomes = 1000
+max_time = 120.0
+
+for genome_test_number in range(0,1000,1):
     load_num = genome_test_number
 
     if os.path.isfile("./current_network/%d" % (load_num )):
@@ -40,10 +42,10 @@ for genome_test_number in range(ngenomes):
 
     genome_success = 0.
 
-    for check in range(1):
+    for check in range(2):
         sim = run_bell()
 
-        if False:
+        if True:
             if check == 0:
                 sim.bell.bell_angle = uniform(np.pi+1.0*sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
                 sim.bell.clapper_angle = sim.bell.bell_angle + sim.bell.clapper_limit - 0.01
@@ -60,32 +62,37 @@ for genome_test_number in range(ngenomes):
                 sim.bell.bell_angle = uniform(-np.pi-1.0*sim.bell.stay_angle, -np.pi-sim.bell.stay_angle)
                 sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
 
-        fitness = 0
-        up_time = 120.0
+        if np.abs(sim.bell.bell_angle) < 0.5:
+            sim.bell.max_length = 0.0  # max backstroke length
+        else:
+            sim.bell.max_length = sim.bell.radius*(1.0 + 3*np.pi/2 - sim.bell.garter_hole)
 
-        while sim.phy.time < up_time:
-            inputs = sim.get_scaled_state()
+
+        fitness = 0
+
+        while sim.phy.time < max_time:
+            inputs = sim.get_scaled_state()[:2]
             action = net.activate(inputs)
             force = continuous_actuator_force(action)
+            sim.bell.pull = force
             sim.step(force)
             fitness = fitness + sim.bell.fitness_increment(sim.phy)
-            if sim.bell.bell_angle > np.pi + sim.bell.stay_angle/2 and abs(sim.bell.velocity) < 0.1 and sim.bell.clapper_angle - sim.bell.bell_angle > 0.1:
-                up_time = min(up_time, sim.phy.time)
 
-        if False:   #Down
+        if True:   #Down
             genome_success += abs(sim.bell.bell_angle) + abs(sim.bell.velocity)
         else:   #Up
             genome_success = up_time
 
-        if up_time < 120:
-            print('Genome', genome_test_number, genome_success,  c.fitness, sim.bell.bell_angle, sim.bell.clapper_angle - sim.bell.bell_angle)
-            successes.append(genome_success)
-            genomes.append(genome_test_number)
+    fitness = sim.bell.fitness_fn(sim.phy, print_accuracy = True)
+    print('Genome', genome_test_number, fitness, sim.bell.bell_angle, sim.bell.velocity)
+    successes.append(fitness)
+    genomes.append(genome_test_number)
 
 plt.plot(genomes, successes)
 plt.xlabel('Generation')
-plt.ylabel('Time to up')
-#plt.yscale('log')
+plt.ylabel('Downness')
+plt.savefig('down2.png')
+
 plt.show()
 
 

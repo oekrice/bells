@@ -16,9 +16,9 @@ import random
 
 runs_per_net = 25
 simulation_seconds = 60.0
-ngenerations = 5000
+ngenerations = 500
 
-use_existing_population = True #Load an existing network that is presumably better than nothing
+use_existing_population = False #Load an existing network that is presumably better than nothing
 
 if not use_existing_population:
     for i in range(0,10000):
@@ -33,20 +33,18 @@ def eval_genome(genome, config):
 
     for runs in range(runs_per_net):
         sim = run_bell()  # all the physics in here
-
-        if True:   #Conditions for general ringing. Start stood at each stroke I think, but might change that.
-            if True:#runs < int(runs_per_net/2):
-                sim.bell.bell_angle = uniform(np.pi+0.5*sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
+        if random.random() < 0.0:   #pick a random angle
+            sim.bell.bell_angle = uniform(-np.pi-sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
+            sim.bell.clapper_angle = sim.bell.bell_angle
+        else:
+            if random.random() < 0.5:   #important that it can get itself off at hand and back
+                sim.bell.bell_angle = uniform(np.pi+0.95*sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
                 sim.bell.clapper_angle = sim.bell.bell_angle + sim.bell.clapper_limit - 0.01
             else:
-                sim.bell.bell_angle = uniform(-np.pi-0.5*sim.bell.stay_angle, -np.pi -sim.bell.stay_angle)
+                sim.bell.bell_angle = uniform(-np.pi-0.95*sim.bell.stay_angle, -np.pi-sim.bell.stay_angle)
                 sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
 
-            sim.bell.target_period = uniform(4.0,6.0)
-
-            sim.bell.m_1 = uniform(390,410)
-            sim.bell.m_2 = 0.05*sim.bell.m_1
-            sim.bell.stay_break_limit = 0.4
+        sim.bell.velocity = 0.0
 
         if np.abs(sim.bell.bell_angle) < 0.5:
             sim.bell.max_length = 0.0  # max backstroke length
@@ -58,7 +56,7 @@ def eval_genome(genome, config):
         while sim.phy.time < simulation_seconds:
             # Inputs are the things we can know -- in my case it is the angle and speed of the bell (for now)
             # Do try to remember to get inputs in the range (0,1). Can do easily enough.
-            inputs = sim.get_scaled_state()
+            inputs = sim.get_scaled_state()[:2]
             # This is just a list.
             action = net.activate(inputs)
             # Apply action to the simulated cart-pole
@@ -68,22 +66,14 @@ def eval_genome(genome, config):
 
             strike_limit = 1.0#5 seconds out in each direction to begin with
             sim.bell.strike_limit = strike_limit
-            #Exit if out of bounds
-            if len(sim.bell.handstroke_accuracy) > 1:
-                #if np.abs(sim.bell.handstroke_accuracy[-1]) > strike_limit:
-                #    break
-                #if len(sim.bell.backstroke_accuracy) > 1:
-                #    if np.abs(sim.bell.backstroke_accuracy[-1]) > strike_limit:
-                #        break
-                if sim.bell.stay_hit > 0:
-                    break
 
-        fitness = sim.bell.fitness_fn(sim.phy)
+            fitness = fitness + sim.bell.fitness_increment(sim.phy)
+        #fitness = sim.bell.fitness_fn(sim.phy)
 
         fitnesses.append(fitness)
     # The genome's fitness is now its average.
-    #return min(fitnesses)
-    return np.sum(fitnesses)/len(fitnesses)
+    return min(fitnesses)
+    #return sum(fitnesses)/len(fitnesses)
 
 
 def eval_genomes(genomes, config):
