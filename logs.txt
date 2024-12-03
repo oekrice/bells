@@ -1,0 +1,23 @@
+2nd Dec: Uses old ringing down config and functions. Testing downness with generations. Pop size 250 with initial partial, with fitness increments and alpha = 4.  
+Next:
+Same with alpha = 2. Took sightly longer to find good solution but did in the end.
+Next:
+Changed fitness fn to be mean. Found some goo dsolutions but took a long time to do so, and rebounded after about 800 as things got complicated.
+
+Next: Initial graph size zero, minimum fitness, alpha = 4. Only have bell up in evolve.
+No significant improvement, reverting to partial initial
+
+Next: Partial graph size, only have bell up.
+Seems to have worked just as well. But was more patient. Should test no initial again, but maybe with up only.
+
+Changing fitness function halfway through worked a charm! Bell is definitely as down as is reasonable now
+Regard that as solved... Took 120 ish to get to a reasonable solution and then another 40 or so to perfect
+
+Next: Unconnected initially, MEAN stagnation. 
+Initial best fitness 0.00078.
+
+Determined MEAN stagation is a bad idea, and it is quicker to start partially connected. Worth a shot...
+
+
+Best so far:
+alpha = 4, minimum.
