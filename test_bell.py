@@ -38,6 +38,9 @@ else:
 print("Loaded genome:")
 print(c)
 
+up_time = 20.0   #Only measure performance after this point
+simulation_seconds = 60.0
+
 # Load the config file, which is assumed to live in
 # the same directory as this script.
 local_dir = os.path.dirname(__file__)
@@ -53,15 +56,26 @@ sim = run_bell()
 sim.bell.m_1 = uniform(150,550)
 sim.bell.m_2 = 0.05*sim.bell.m_1
 
-if random.random() < 0.5:
-    sim.bell.bell_angle = uniform(np.pi+0.5*sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
-    sim.bell.clapper_angle = sim.bell.bell_angle + sim.bell.clapper_limit - 0.01
-else:
-    sim.bell.bell_angle = uniform(-np.pi-0.5*sim.bell.stay_angle, -np.pi -sim.bell.stay_angle)
-    sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
+if False:
+    if random.random() < 0.5:
+        sim.bell.bell_angle = uniform(np.pi+0.5*sim.bell.stay_angle, np.pi+sim.bell.stay_angle)
+        sim.bell.clapper_angle = sim.bell.bell_angle + sim.bell.clapper_limit - 0.01
+    else:
+        sim.bell.bell_angle = uniform(-np.pi-0.5*sim.bell.stay_angle, -np.pi -sim.bell.stay_angle)
+        sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
 
-#sim.bell.bell_angle = np.pi-0.5
-#sim.bell.target_period = uniform(4.0,5.4)
+sim.bell.stay_break_limit = 0.4
+
+runs = 15; runs_per_net = 30
+amin = np.pi * 0.9; amax = np.pi
+rmin = (runs//2)*(amax - amin)/(runs_per_net//2) + amin
+rmax = (runs//2+1)*(amax - amin)/(runs_per_net//2) + amin
+
+if runs%2 == 0:
+    rmin = -rmin; rmax = -rmax
+
+sim.bell.bell_angle = 0.0#uniform(rmin, rmax)
+sim.bell.clapper_angle = 0.0#np.sign(bell.bell_angle)*bell.clapper_limit + bell.bell_angle
 
 if np.abs(sim.bell.bell_angle) < 0.5:
     sim.bell.max_length = 0.0  # max backstroke length
@@ -70,7 +84,7 @@ else:
 
 sim.bell.target_period = 5.0
 
-sim.bell.m_1 = 400
+sim.bell.m_1 = 500
 sim.bell.m_2 = 0.05*sim.bell.m_1
 
 sim.bell.stay_break_limit = 0.4
@@ -88,7 +102,8 @@ velocities_log = [sim.bell.velocity]
 fitness = 0
 strike_limit = 5.0
 
-while sim.phy.time < 60*sim.bell.target_period:
+count = 0
+while sim.phy.time < simulation_seconds:
     inputs = sim.get_scaled_state()[:2]
     action = net.activate(inputs)
 
@@ -103,17 +118,14 @@ while sim.phy.time < 60*sim.bell.target_period:
     angles_log.append(sim.bell.bell_angle)
     velocities_log.append(sim.bell.velocity)
     fitness = fitness + sim.bell.fitness_increment(sim.phy)
-    #print(sim.bell.fitness_increment(sim.phy)*60*60)
+    #print(sim.bell.bell_angle, sim.phy.time)
 
-    if len(sim.bell.handstroke_accuracy) > 1:
-        #if np.abs(sim.bell.handstroke_accuracy[-1]) > strike_limit:
-        #    break
-        #if len(sim.bell.backstroke_accuracy) > 1:
-        #    if np.abs(sim.bell.backstroke_accuracy[-1]) > strike_limit:
-        #        break
-        if sim.bell.stay_hit > 0:
-            break
+    if count % 60 == 0:
+        #fitness = bell.fitness_fn(phy, print_accuracy = True)
+        #print(sim.bell.fitness_increment(sim.phy)*60*60)
+        print('Time', sim.phy.time, 'Angle', sim.bell.bell_angle)
 
+    count += 1
 #print(sim.bell.handstroke_accuracy)
 #print(sim.bell.backstroke_accuracy)
 #print(sim.bell.forces)

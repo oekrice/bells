@@ -35,22 +35,27 @@ pygame.init()
 phy = init_physics()
 bell = init_bell(phy, 0.0)
 
-if random.random() < 0.5:
-    bell.bell_angle = uniform(np.pi+0.5*bell.stay_angle, np.pi+bell.stay_angle)
-    bell.clapper_angle = bell.bell_angle + bell.clapper_limit - 0.01
-else:
-    bell.bell_angle = uniform(-np.pi-0.5*bell.stay_angle, -np.pi -bell.stay_angle)
-    bell.clapper_angle = bell.bell_angle - bell.clapper_limit + 0.01
+runs = 15; runs_per_net = 30
+amin = np.pi * 0.9; amax = np.pi
+rmin = (runs//2)*(amax - amin)/(runs_per_net//2) + amin
+rmax = (runs//2+1)*(amax - amin)/(runs_per_net//2) + amin
+
+if runs%2 == 0:
+    rmin = -rmin; rmax = -rmax
+
+bell.bell_angle = 0.0#uniform(rmin, rmax)
+bell.clapper_angle = np.sign(bell.bell_angle)*bell.clapper_limit + bell.bell_angle
 
 if np.abs(bell.bell_angle) < 0.5:
     bell.max_length = 0.0  # max backstroke length
 else:
     bell.max_length = bell.radius*(1.0 + 3*np.pi/2 - bell.garter_hole)
 
+
 bell.target_period = 5.0
 bell.stay_break_limit = 1.0
 
-bell.m_1 = 400
+bell.m_1 = 500
 bell.m_2 = 0.05*bell.m_1
 
 print('Bell mass', bell.m_1)
@@ -66,7 +71,6 @@ dp.import_images(phy, bell)
 # set up the window
 pygame.display.set_caption("Animation")
 
-
 class Networks:
     def __init__(self):
         local_dir = os.path.dirname(__file__)
@@ -76,22 +80,22 @@ class Networks:
         )
         with open("networks/ring_up", "rb") as f:
             up = pickle.load(f)
+            print(up)
         self.up = neat.nn.FeedForwardNetwork.create(up, config)
         with open("networks/ring_down", "rb") as f:
             down = pickle.load(f)
         self.down = neat.nn.FeedForwardNetwork.create(down, config)
-        print(down)
         with open("networks/ring_steady", "rb") as f:
             steady = pickle.load(f)
         self.steady = neat.nn.FeedForwardNetwork.create(steady, config)
 
-if False:
+if True:
     # Find current best ringing up
     if load_num < 0:
         os.system("scp current_best ./networks/ring_up")
     else:
         os.system("scp ./current_network/%d ./networks/ring_up" % load_num)
-if True:
+if False:
     # Find current best ringing up
     if load_num < 0:
         os.system("scp current_best ./networks/ring_down")
@@ -116,7 +120,7 @@ async def main():
 
     wheel_force = 600  # force on the rope (in Newtons)
     count = 0
-    ring_up = False
+    ring_up = True
     ring_down = False
     ring_steady = False
     dp.surface.fill(dp.WHITE)
@@ -149,6 +153,7 @@ async def main():
 
         if bell.stay_hit > 0:
             force = 0.0
+
 
         if bell.effect_force < 0.0:  # Can pull the entire handstroke
             bell.wheel_force = force * bell.effect_force * wheel_force
@@ -267,8 +272,10 @@ async def main():
 
         if count % refresh_rate == 0:
             pygame.display.update()
-        if count % 120 == 0:
-            fitness = bell.fitness_fn(phy, print_accuracy = True)
+        if count % 60 == 0:
+            #fitness = bell.fitness_fn(phy, print_accuracy = True)
+            print(bell.fitness_increment(phy)*60*60)
+            print('Time', phy.time, 'Angle', bell.bell_angle)
             #rpint('Fitness', fitness)
             #print(bell.handstroke_accuracy)
             #print(bell.backstroke_accuracy)
@@ -277,13 +284,13 @@ async def main():
         if count % (60*60) == -1:
             # Find current best ringing up
             if load_num >= 0:
-                os.system("scp ./current_network/%d ./networks/ring_down" % load_num)
+                os.system("scp ./current_network/%d ./networks/ring_up" % load_num)
             else:
                 for i in range(10000):
                     if not os.path.isfile('./current_network/%d' % (i+1)):
                         break
 
-                os.system("scp ./current_network/%d ./networks/ring_down" % i)
+                os.system("scp ./current_network/%d ./networks/ring_up" % i)
 
             #nets = Networks()
 

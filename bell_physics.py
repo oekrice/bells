@@ -481,7 +481,7 @@ class init_bell:
             else:
                 return 0.0
 
-        else:   #Ringing down overall performance -- only caring about end result once the rest has been optimised and the bell is ringing down reasonably well
+        elif False:   #Ringing down overall performance -- only caring about end result once the rest has been optimised and the bell is ringing down reasonably well
             alpha = 2
             max_angle = 1e-1
             final_angle = (max(0., (max_angle - np.abs(self.bell_angle))/max_angle)**alpha)
@@ -498,12 +498,20 @@ class init_bell:
                 print('Final stats applied', final_angle, final_velocity, final_clapper_angle, final_force)
             return 0.4*final_angle + 0.4*final_velocity + 0.0*final_clapper_angle + 0.2*final_force
 
+        else:   #Ringing up overall performance -- time to up plus the force at the end?
+            alpha = 2
+            up_time = 60.0
+            for i in range(len(self.bell_angles)):
+                if self.bell_angles[i] > np.pi + self.stay_angle * 0.75:
+                    up_time = min(up_time, i/60)
+            up_time = 60.0 - up_time
+            return 0.75*(up_time/60.0)**alpha + 0.25*(1.0 - self.pull)**alpha
 
     def fitness_increment(self, phy):
         """Fitness function at a given time rather than evaulating after the fact"""
         """Must multiply by dt/tmax or equivalent"""
         mult = 60.0 * phy.FPS
-        if True:  # RINGING DOWN
+        if False:  # RINGING DOWN
 
             if np.abs(self.bell_angle) > np.pi:
                 # Bell is over the balance
@@ -522,7 +530,6 @@ class init_bell:
             fitness_increment = fitness_increment/(self.stay_hit + 1)
 
             return fitness_increment/mult
-
 
         else:   #RINGING UP
             if self.bell_angle > np.pi and self.stay_hit == 0:
@@ -548,4 +555,6 @@ class init_bell:
                 upcos = 0.5 - 0.5*np.cos(self.bell_angle)
                 upness = side_factor*(upcos)**alpha
                 fitness_increment = force_fraction*forceness + (1.0 - force_fraction)*upness
+
+
             return fitness_increment/mult
