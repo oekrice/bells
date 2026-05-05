@@ -3,6 +3,8 @@ File containing the Neural net stuff for bell training.
 Let's just keep it all separate, because I know what I'm doing these days...
 """
 
+import numpy as np
+
 class ForceNet():
     """
     Class for the neural net used for determining forces from the inputs.
@@ -47,7 +49,7 @@ class ForceNet():
         """
         return 1.0/(1.0 + np.exp(-x))
 
-    def velocity(self, inputs):
+    def force(self, inputs):
         """
         For given input arrays, runs the neural net to find the expected output (number between 0 and 1)
         """

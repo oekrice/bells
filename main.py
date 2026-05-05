@@ -21,6 +21,7 @@ import sys
 
 from bell_physics import init_bell, init_physics
 from display import display_tools
+from nets import ForceNet
 
 if True:
     nest_asyncio.apply()
@@ -62,8 +63,8 @@ else:
 bell.target_period = 5.0
 bell.stay_break_limit = 1.0
 
-bell.m_1 = 500
-bell.m_2 = 0.05*bell.m_1
+bell.m_1 = 500   #Bell mass
+bell.m_2 = 0.05*bell.m_1   #Clapper mass
 
 print('Bell mass', bell.m_1)
 
@@ -81,6 +82,9 @@ dp.define_colours()
 dp.import_images(phy, bell)
 # set up the window
 pygame.display.set_caption("Animation")
+
+nets = ForceNet(10, 2)
+nets.generate_random_seed()
 
 class Networks:
     def __init__(self):
@@ -120,7 +124,7 @@ if False:
         os.system("scp ./current_network/%d ./networks/ring_steady" % load_num)
 
 
-nets = Networks()
+#nets = Networks()  #This is the old networks one
 
 refresh_rate = 2
 
@@ -149,17 +153,22 @@ async def main():
 
         if ring_up:
             inputs = bell.get_scaled_state()[:2]
-            action = nets.up.activate(inputs)
+            #action = nets.up.activate(inputs)
+            action = nets.force(inputs)
             force = min(1.0, force + action[0])
 
         if ring_down:
             inputs = bell.get_scaled_state()[:2]
-            action = nets.down.activate(inputs)
+            #action = nets.down.activate(inputs)
+            action = nets.force(inputs)
+
             force = min(1.0, force + action[0])
 
         if ring_steady:
-            inputs = bell.get_scaled_state()
-            action = nets.steady.activate(inputs)
+            inputs = bell.get_scaled_state()[:2]
+            #action = nets.steady.activate(inputs)
+            action = nets.force(inputs)
+
             force = min(1.0, force + action[0])
 
         if bell.stay_hit > 0:
