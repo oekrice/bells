@@ -130,6 +130,8 @@ class init_bell:
 
         self.strike_limit = 100
 
+        self.current_mode = 'none'   #This is whether it's ringing up, down etc.
+
     def timestep(self, phy):
         # Do the timestep here, using only bell.force, which comes either from an input or the machine
         # Update the physics here
@@ -511,27 +513,22 @@ class init_bell:
         """Fitness function at a given time rather than evaulating after the fact"""
         """Must multiply by dt/tmax or equivalent"""
         mult = 60.0 * phy.FPS
-        if False:  # RINGING DOWN
+        if self.current_mode == 'down':  # RINGING DOWN
 
-            if np.abs(self.bell_angle) > np.pi:
-                # Bell is over the balance
-                over_balance = True
-            else:
-                over_balance = False
             force_fraction = 0.1 #How much to care about the force applied at each stroke
-            alpha = 4  #Distance factor
-            if over_balance:
-                fitness_increment = 0.5*(1.0 - ((np.abs(self.bell_angle) - np.pi)/self.stay_angle))   #Encourage to ring to the balance
-            else:
-                downness = (1.0 - np.abs(self.bell_angle)/np.pi)**alpha
-                forceness = (1.0 - self.pull)**alpha
-                fitness_increment = force_fraction*forceness + (1.0 - force_fraction)*downness
+            alpha = 2  #Distance factor
 
-            fitness_increment = fitness_increment/(self.stay_hit + 1)
+            downness = self.bell_angle**alpha
+            forceness = self.pull**alpha
+            fitness_increment = downness*(1.0 + force_fraction*forceness)
 
             return fitness_increment/mult
 
-        else:   #RINGING UP
+        elif self.current_mode == 'up':   #RINGING UP
+
+            if self.stay_hit > 0:  #Heavily penalise breaking a stay
+                return 1e12
+
             if self.bell_angle > np.pi and self.stay_hit == 0:
                 up_handstroke = True
             else:
@@ -541,20 +538,16 @@ class init_bell:
             else:
                 up_backstroke = False
             force_fraction = 0.1 #How much to care about the force applied at each stroke
-            alpha = 4  #Distance factor
-            forceness = (1.0 - self.pull)**alpha
-            if self.bell_angle > 0.0:
-                side_factor = 0.8
-            else:
-                side_factor = 0.7  #discourage lingering at backstroke. But not terribly so.
-            if up_handstroke:
-                fitness_increment = 1.0*((1.0 - force_fraction) + forceness*force_fraction)
-            elif up_backstroke:
-                fitness_increment = 0.5*((1.0 - force_fraction) + forceness*force_fraction)
-            else:
-                upcos = 0.5 - 0.5*np.cos(self.bell_angle)
-                upness = side_factor*(upcos)**alpha
-                fitness_increment = force_fraction*forceness + (1.0 - force_fraction)*upness
+            alpha = 2  #Distance factor
+            forceness = self.pull**alpha
 
+            if self.bell_angle < 0.0:
+                upness = np.pi**alpha
+            else:
+                upness = (np.pi - self.bell_angle/np.pi)**alpha
+
+            fitness_increment = upness*(1.0 + force_fraction*forceness)
 
             return fitness_increment/mult
+        else:
+            return 0.

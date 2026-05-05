@@ -83,58 +83,22 @@ dp.import_images(phy, bell)
 # set up the window
 pygame.display.set_caption("Animation")
 
-nets = ForceNet(10, 2)
-nets.generate_random_seed()
+Net = ForceNet(10, 2)
+Net.generate_random_seed()
 
-class Networks:
-    def __init__(self):
-        local_dir = os.path.dirname(__file__)
-        config_path = os.path.join(local_dir, "networks/config")
-        config = neat.Config(
-            neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet, neat.DefaultStagnation, config_path
-        )
-        with open("networks/ring_up", "rb") as f:
-            up = pickle.load(f)
-            print(up)
-        self.up = neat.nn.FeedForwardNetwork.create(up, config)
-        with open("networks/ring_down", "rb") as f:
-            down = pickle.load(f)
-        self.down = neat.nn.FeedForwardNetwork.create(down, config)
-        with open("networks/ring_steady", "rb") as f:
-            steady = pickle.load(f)
-        self.steady = neat.nn.FeedForwardNetwork.create(steady, config)
-
-if False:
-    # Find current best ringing up
-    if load_num < 0:
-        os.system("scp current_best ./networks/ring_up")
-    else:
-        os.system("scp ./current_network/%d ./networks/ring_up" % load_num)
-if False:
-    # Find current best ringing up
-    if load_num < 0:
-        os.system("scp current_best ./networks/ring_down")
-    else:
-        os.system("scp ./current_network/%d ./networks/ring_down" % load_num)
-if False:
-    # Find current best ringing up
-    if load_num < 0:
-        os.system("scp current_best ./networks/ring_steady")
-    else:
-        os.system("scp ./current_network/%d ./networks/ring_steady" % load_num)
-
-
-#nets = Networks()  #This is the old networks one
 
 refresh_rate = 2
 
 strike_limit = 1.0
+
 async def main():
 
     fpsClock = pygame.time.Clock()
 
-    wheel_force = 600  # force on the rope (in Newtons)
+    wheel_force = 600  # Max. force on the rope (in Newtons)
     count = 0
+    fitness = 0.0
+
     ring_up = False
     ring_down = False
     ring_steady = False
@@ -151,29 +115,27 @@ async def main():
         if press_keys[pygame.K_SPACE] or press_mouse[0]:
             force = 1.0
 
+        inputs = bell.get_scaled_state()
+
         if ring_up:
-            inputs = bell.get_scaled_state()[:2]
-            #action = nets.up.activate(inputs)
-            action = nets.force(inputs)
+            bell.current_mode = 'up'
+            Net.load_best_state(bell.current_mode)
+            action = nets.force(inputs[:2])
             force = min(1.0, force + action[0])
 
         if ring_down:
-            inputs = bell.get_scaled_state()[:2]
-            #action = nets.down.activate(inputs)
-            action = nets.force(inputs)
-
+            bell.current_mode = 'down'
+            action = nets.force(inputs[:2])
             force = min(1.0, force + action[0])
 
         if ring_steady:
-            inputs = bell.get_scaled_state()[:2]
-            #action = nets.steady.activate(inputs)
-            action = nets.force(inputs)
 
+            bell.current_mode = 'steady'
+            action = nets.force(inputs)
             force = min(1.0, force + action[0])
 
         if bell.stay_hit > 0:
             force = 0.0
-
 
         if bell.effect_force < 0.0:  # Can pull the entire handstroke
             bell.wheel_force = force * bell.effect_force * wheel_force
@@ -225,17 +187,31 @@ async def main():
                     ring_up = not (ring_up)
                     ring_down = False
                     ring_steady = False
+                    if bell.current_mode == 'up':
+                        bell.current_mode = 'none'
+                    else:
+                        bell.current_mode = 'up'
+
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_d:
                     ring_down = not (ring_down)
                     ring_up = False
                     ring_steady = False
+                    if bell.current_mode == 'down':
+                        bell.current_mode = 'none'
+                    else:
+                        bell.current_mode = 'down'
+
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_s:
                     ring_steady = not (ring_steady)
                     ring_up = False
                     ring_down = False
                     bell.update_rhythm = True
+                    if bell.current_mode == 'steady':
+                        bell.current_mode = 'none'
+                    else:
+                        bell.current_mode = 'steady'
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_z:
@@ -280,7 +256,7 @@ async def main():
                 return
 
         bell.timestep(phy)
-
+        fitness += bell.fitness_increment(phy)
         '''
         if len(bell.backstroke_accuracy) > 0:
             print(bell.backstroke_accuracy[-1])

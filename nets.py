@@ -4,6 +4,7 @@ Let's just keep it all separate, because I know what I'm doing these days...
 """
 
 import numpy as np
+import os
 
 class ForceNet():
     """
@@ -54,21 +55,23 @@ class ForceNet():
         For given input arrays, runs the neural net to find the expected output (number between 0 and 1)
         """
         inputs = np.array(inputs)
-        node_activations = np.zeros((self.n_nodes, np.shape(inputs[0])[0], np.shape(inputs[0])[1]))
+        node_activations = np.zeros(self.n_nodes)
 
         for n in range(self.n_nodes):
-            node_activations[n] += np.sum(self.weights_in[:,n, np.newaxis, np.newaxis]*inputs[:], axis=0) + self.biases_in[n]
+            node_activations[n] += np.sum(self.weights_in[:,n]*inputs[:]) + self.biases_in[n]
         node_activations = np.clip(node_activations, a_min = 1e-3, a_max = 1e3)  #Stop over and underflow in the exponentials
         node_activations = self.sigmoid(node_activations)
-        output = np.sum(node_activations*self.weights_out[:,np.newaxis,np.newaxis], axis=0) + self.biases_out
+        output = np.sum(node_activations*self.weights_out[:]) + self.biases_out
         output = self.sigmoid(output)
 
         return output
 
-    def save_current_state(self, minimiser, fname='net_state.txt'):
+    def save_current_state(self, mode, minimiser):
         """
         Appends to the filename the current ability of the net in question. SO can restart a training run with impunity etc.
         """
+        fname = f'./nets/{mode}.txt'
+
         step = 0
         if os.path.exists(fname):
             with open(fname) as f:
@@ -80,8 +83,9 @@ class ForceNet():
             f.write(" ".join(f"{x:.6f}" for x in save_line) + "\n")
         return
 
-    def load_best_state(self, fname='net_state.txt', override_nnodes=False):
+    def load_best_state(self, mode, override_nnodes=False):
 
+        fname = f'./nets/{mode}.txt'
         #Determine the correct number of parameters for this best state
         if os.path.exists(fname):
             print('Using bespoke best state')
