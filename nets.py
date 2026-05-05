@@ -1,0 +1,207 @@
+"""
+File containing the Neural net stuff for bell training.
+Let's just keep it all separate, because I know what I'm doing these days...
+"""
+
+class ForceNet():
+    """
+    Class for the neural net used for determining forces from the inputs.
+    Need to be consistent with inputs really, have position and angular velocity as 0 and 1, but then might become a little messy. We'll see...
+    """
+
+    def __init__(self, n_nodes=10, n_inputs=2):
+        #Generate arraysfor the weights and things. Then broadcast to these arrays so the dimensions don't get mixed up...
+        self.n_nodes = n_nodes
+        self.n_inputs = n_inputs
+        self.nparas = n_inputs*n_nodes + n_nodes*2 + 1
+
+        self.weights_in = np.zeros((n_inputs, n_nodes))
+        self.biases_in = np.zeros((n_nodes))
+        self.weights_out = np.zeros((n_nodes))
+        self.biases_out = np.zeros((1))
+        self.parameter_set = np.zeros((self.nparas))
+
+    def generate_random_seed(self, sigma=0.1):
+        """
+        Does a seed with Gaussian weightings of sigma
+        """
+        self.parameter_set = np.random.normal(scale=sigma, size = self.nparas)
+        self.weights_in[:,:] = np.reshape(self.parameter_set[0:self.n_inputs*self.n_nodes], shape = np.shape(self.weights_in))
+        self.biases_in[:] = self.parameter_set[self.n_inputs*self.n_nodes:self.n_inputs*self.n_nodes+self.n_nodes]
+        self.weights_out[:] = self.parameter_set[self.n_inputs*self.n_nodes+self.n_nodes:self.n_inputs*self.n_nodes+self.n_nodes*2]
+        self.biases_out[:] = self.parameter_set[self.n_inputs*self.n_nodes+self.n_nodes*2:self.n_inputs*self.n_nodes+self.n_nodes*2+1]
+
+    def update_network(self, parameter_set):
+        """
+        For a given parameter set, updates the network biases etc.
+        """
+        self.parameter_set = parameter_set.copy()
+        self.weights_in[:,:] = np.reshape(parameter_set[0:self.n_inputs*self.n_nodes], shape = np.shape(self.weights_in))
+        self.biases_in[:] = parameter_set[self.n_inputs*self.n_nodes:self.n_inputs*self.n_nodes+self.n_nodes]
+        self.weights_out[:] = parameter_set[self.n_inputs*self.n_nodes+self.n_nodes:self.n_inputs*self.n_nodes+self.n_nodes*2]
+        self.biases_out[:] = parameter_set[self.n_inputs*self.n_nodes+self.n_nodes*2:self.n_inputs*self.n_nodes+self.n_nodes*2+1]
+
+    def sigmoid(self, x):
+        """
+        Returns the sigmoid function of the input x
+        """
+        return 1.0/(1.0 + np.exp(-x))
+
+    def velocity(self, inputs):
+        """
+        For given input arrays, runs the neural net to find the expected output (number between 0 and 1)
+        """
+        inputs = np.array(inputs)
+        node_activations = np.zeros((self.n_nodes, np.shape(inputs[0])[0], np.shape(inputs[0])[1]))
+
+        for n in range(self.n_nodes):
+            node_activations[n] += np.sum(self.weights_in[:,n, np.newaxis, np.newaxis]*inputs[:], axis=0) + self.biases_in[n]
+        node_activations = np.clip(node_activations, a_min = 1e-3, a_max = 1e3)  #Stop over and underflow in the exponentials
+        node_activations = self.sigmoid(node_activations)
+        output = np.sum(node_activations*self.weights_out[:,np.newaxis,np.newaxis], axis=0) + self.biases_out
+        output = self.sigmoid(output)
+
+        return output
+
+    def save_current_state(self, minimiser, fname='net_state.txt'):
+        """
+        Appends to the filename the current ability of the net in question. SO can restart a training run with impunity etc.
+        """
+        step = 0
+        if os.path.exists(fname):
+            with open(fname) as f:
+                for line in f.readlines():
+                    step += 1
+
+        save_line = [step, minimiser] + self.parameter_set.tolist()
+        with open(fname, "a") as f:
+            f.write(" ".join(f"{x:.6f}" for x in save_line) + "\n")
+        return
+
+    def load_best_state(self, fname='net_state.txt', override_nnodes=False):
+
+        #Determine the correct number of parameters for this best state
+        if os.path.exists(fname):
+            print('Using bespoke best state')
+            best_score = 1e6; best_id = 0
+            best_parameters = []
+            with open(fname, "r") as f:
+                data = f.readlines()
+                cut = len(data)
+                for li, line in enumerate(data[-cut:]):
+                    if float(line.split(' ')[1]) < best_score:
+                        best_score = float(line.split(' ')[1])
+                        best_id = len(data) - cut + li
+
+            for val in data[best_id].split(' ')[2:]:
+                best_parameters.append(float(val))
+            print('Best score', best_score)
+        elif os.path.exists('./nets/default.txt'):
+            print('Using default state')
+            best_score = 1e6; best_id = 0
+            best_parameters = []
+            with open('./nets/default.txt', "r") as f:
+                data = f.readlines()
+                cut = len(data)
+                for li, line in enumerate(data[-cut:]):
+                    if float(line.split(' ')[1]) < best_score:
+                        best_score = float(line.split(' ')[1])
+                        best_id = len(data) - cut + li
+            for val in data[best_id].split(' ')[2:]:
+                best_parameters.append(float(val))
+        else:
+            raise Exception('Log file not found...')
+
+        target_nparas = len(best_parameters)
+
+        n_best = 0
+        for n in range(100):
+            if target_nparas == self.n_inputs*n + n*2 + 1:
+                n_best = n
+                print(f'Best parameters are for {n} nodes')
+                break
+
+        if n_best != self.n_nodes:
+            print("Best parameters are not for the correct amount of nodes")
+
+        if n_best < self.n_nodes and override_nnodes:
+            print('Using fewer nodes and will extend as appropriate in due course')
+            self.n_nodes = n_best
+            n_nodes = n_best
+            n_inputs = self.n_inputs
+            self.nparas = n_inputs*n_nodes + n_nodes*2 + 1
+
+            self.weights_in = np.zeros((n_inputs, n_nodes))
+            self.biases_in = np.zeros((n_nodes))
+            self.weights_out = np.zeros((n_nodes))
+            self.biases_out = np.zeros((1))
+            self.parameter_set = np.zeros((self.nparas))
+
+        elif n_best == self.n_nodes:
+            print('Best scores match. Carry on.')
+        else:
+            raise Exception("Cannot use best parameters. Sort it out.")
+
+        self.parameter_set[:] = np.array(best_parameters)
+        self.weights_in[:,:] = np.reshape(self.parameter_set[0:self.n_inputs*self.n_nodes], shape = np.shape(self.weights_in))
+        self.biases_in[:] = self.parameter_set[self.n_inputs*self.n_nodes:self.n_inputs*self.n_nodes+self.n_nodes]
+        self.weights_out[:] = self.parameter_set[self.n_inputs*self.n_nodes+self.n_nodes:self.n_inputs*self.n_nodes+self.n_nodes*2]
+        self.biases_out[:] = self.parameter_set[self.n_inputs*self.n_nodes+self.n_nodes*2:self.n_inputs*self.n_nodes+self.n_nodes*2+1]
+        return
+
+    def load_latest_state(self, fname='net_state.txt'):
+        """
+        Loads the last state found in the log, not necessarily the best
+        """
+        if os.path.exists(fname):
+            best_score = 1e6; best_id = 0
+            best_parameters = []
+            with open(fname, "r") as f:
+                data = f.readlines()
+                cut = len(data)
+                line = data[-1]
+
+            for val in data[-1].split(' ')[2:]:
+                best_parameters.append(float(val))
+            print('Latest score', best_score)
+        else:
+            raise Exception('Log file not found...')
+
+        self.parameter_set[:] = np.array(best_parameters)
+        self.weights_in[:,:] = np.reshape(self.parameter_set[0:self.n_inputs*self.n_nodes], shape = np.shape(self.weights_in))
+        self.biases_in[:] = self.parameter_set[self.n_inputs*self.n_nodes:self.n_inputs*self.n_nodes+self.n_nodes]
+        self.weights_out[:] = self.parameter_set[self.n_inputs*self.n_nodes+self.n_nodes:self.n_inputs*self.n_nodes+self.n_nodes*2]
+        self.biases_out[:] = self.parameter_set[self.n_inputs*self.n_nodes+self.n_nodes*2:self.n_inputs*self.n_nodes+self.n_nodes*2+1]
+        return
+
+    def extend_net(self, n_nodes_target):
+        """
+        Adds more neurons to an existing net, up to n_nodes_target of them.
+        """
+        nparas_new = self.n_inputs*n_nodes_target + n_nodes_target*2 + 1
+        new_parameter_set = np.zeros(nparas_new)
+
+        new_weights = np.zeros((self.n_inputs, n_nodes_target))
+        new_weights[:,:self.n_nodes] = self.weights_in
+
+        new_parameter_set[0:self.n_inputs*n_nodes_target] = np.reshape(new_weights, shape = (self.n_inputs*n_nodes_target))
+        new_parameter_set[self.n_inputs*n_nodes_target:self.n_inputs*n_nodes_target+self.n_nodes] = self.biases_in[:]
+        new_parameter_set[self.n_inputs*n_nodes_target+n_nodes_target:self.n_inputs*n_nodes_target+n_nodes_target+self.n_nodes] = self.weights_out[:]
+        new_parameter_set[self.n_inputs*n_nodes_target+n_nodes_target*2:self.n_inputs*n_nodes_target+n_nodes_target*2+1] = self.biases_out[:]
+
+        #Update Net metadata
+        self.parameter_set = new_parameter_set
+        self.n_nodes = n_nodes_target
+        self.nparas = self.n_inputs*self.n_nodes + self.n_nodes*2 + 1
+
+        self.weights_in = np.zeros((self.n_inputs, n_nodes_target))
+        self.biases_in = np.zeros((n_nodes_target))
+        self.weights_out = np.zeros((n_nodes_target))
+        self.biases_out = np.zeros((1))
+
+        self.weights_in[:,:] = np.reshape(self.parameter_set[0:self.n_inputs*self.n_nodes], shape = (self.n_inputs, self.n_nodes))
+        self.biases_in[:] = self.parameter_set[self.n_inputs*self.n_nodes:self.n_inputs*self.n_nodes+self.n_nodes]
+        self.weights_out[:] = self.parameter_set[self.n_inputs*self.n_nodes+self.n_nodes:self.n_inputs*self.n_nodes+self.n_nodes*2]
+        self.biases_out[:] = self.parameter_set[self.n_inputs*self.n_nodes+self.n_nodes*2:self.n_inputs*self.n_nodes+self.n_nodes*2+1]
+
+        return
