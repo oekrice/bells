@@ -32,6 +32,13 @@ else:
 
 pygame.init()
 
+try:
+    pygame.mixer.init()
+    audio_enabled = True
+except pygame.error:
+    print("Audio disabled")
+    audio_enabled = False
+
 phy = init_physics()
 bell = init_bell(phy, 0.0)
 
@@ -62,7 +69,11 @@ print('Bell mass', bell.m_1)
 
 dp = display_tools(phy, bell)
 
-bell.sound = pygame.mixer.Sound("bellsound_deep.wav")
+if audio_enabled:
+    bell.sound = pygame.mixer.Sound("bellsound_deep.wav")
+else:
+    bell.sound = None
+    phy.do_volume = False
 
 # Set up colours
 dp.define_colours()
@@ -89,7 +100,7 @@ class Networks:
             steady = pickle.load(f)
         self.steady = neat.nn.FeedForwardNetwork.create(steady, config)
 
-if True:
+if False:
     # Find current best ringing up
     if load_num < 0:
         os.system("scp current_best ./networks/ring_up")
@@ -120,7 +131,7 @@ async def main():
 
     wheel_force = 600  # force on the rope (in Newtons)
     count = 0
-    ring_up = True
+    ring_up = False
     ring_down = False
     ring_steady = False
     dp.surface.fill(dp.WHITE)
@@ -186,11 +197,12 @@ async def main():
         # Check for sound
         if bell.ding == True:
             # if abs(bell.bell_angle) > bell.sound_angle and abs(bell.prev_angle) <= bell.sound_angle:
-            bell.sound.play()
-            if bell.bell_angle > 0:
-                print('Back', bell.backstroke_target)
-            else:
-                print('Hand', bell.handstroke_target)
+            if audio_enabled:
+                bell.sound.play()
+                if bell.bell_angle > 0:
+                    print('Back', bell.backstroke_target)
+                else:
+                    print('Hand', bell.handstroke_target)
             # continue
         # Check for force on wheel - this takes effect at the next timestep
 
