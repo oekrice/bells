@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt
 from bell_physics import init_bell, init_physics
 from display import display_tools
 from nets import ForceNet
+from learn import run_bell
 
 import cma
 import os
@@ -63,9 +64,9 @@ def initialise_bell(phy, angle=0.0, velocity = 0.0):
 
     return bell
 
-
 n_nodes = 2
-Net = ForceNet(n_nodes, 2)
+n_inputs = 2
+Net = ForceNet(n_nodes, n_inputs)
 Net.generate_random_seed()
 
 #nets = Networks()  #This is the old networks one
@@ -88,6 +89,7 @@ def evaluate_theta(theta, angles):
     global mode
 
     total_fitness = 0.0
+    simulation_seconds = 60.0
 
     for initial_angle in angles:
         #Perhaps start off near the top and gradually work down? Worth a shot.
@@ -95,7 +97,8 @@ def evaluate_theta(theta, angles):
         phy = init_physics()
         phy.do_volume = False
 
-        bell = initialise_bell(phy, initial_angle, 0.0)
+        #bell = initialise_bell(phy, initial_angle, 0.0)
+        sim = run_bell()  # all the physics in here
 
         wheel_force = 600  # Max. force on the rope (in Newtons)
         count = 0
@@ -105,71 +108,73 @@ def evaluate_theta(theta, angles):
         ring_down = False
         ring_steady = False
 
-        bell.current_mode = mode
+        sim.bell.current_mode = mode
 
         Net.update_network(theta)
 
-        while phy.time < max_time:  # the main game loop
+        # Check for inputs that affect the timestep
+        force = 0.0  # This value between 0 and 1 and then update based on the physics.
 
-            # Check for inputs that affect the timestep
-            force = 0.0  # This value between 0 and 1 and then update based on the physics
+        #amin = 0.0*np.pi; amax = 0.1*np.pi
 
-            inputs = bell.get_scaled_state()
+        sim.bell.bell_angle = initial_angle# uniform(amin, amax)
 
-            if bell.current_mode == 'up':
+        sim.bell.clapper_angle = np.sign(sim.bell.bell_angle)*sim.bell.clapper_limit + sim.bell.bell_angle
+
+        sim.bell.stay_break_limit = 0.4
+
+        sim.bell.velocity = 0.0
+
+        if np.abs(sim.bell.bell_angle) < 0.5:
+            sim.bell.max_length = 0.0  # max backstroke length
+        else:
+            sim.bell.max_length = sim.bell.radius*(1.0 + 3*np.pi/2 - sim.bell.garter_hole)
+
+        # Run the given simulation for up to num_steps time steps.
+        fitness = 0.0
+        while sim.phy.time < simulation_seconds:
+
+            inputs = sim.bell.get_scaled_state()[:2]
+
+            if sim.bell.current_mode == 'up':
                 ring_up = True
-                action = Net.force(inputs[:2])
-                force = min(1.0, force + action[0])
+                action = Net.force(inputs)
+                force = min(1.0, action[0])
 
-            if bell.current_mode == 'down':
+            if sim.bell.current_mode == 'down':
                 ring_down = True
-                action = Net.force(inputs[:2])
-                force = min(1.0, force + action[0])
+                action = Net.force(inputs)
+                force = min(1.0, action[0])
 
-            if bell.current_mode == 'steady':
+            if sim.bell.current_mode == 'steady':
                 ring_steady = True
                 action = Net.force(inputs)
-                force = min(1.0, force + action[0])
+                force = min(1.0, action[0])
 
-            if bell.stay_hit > 0:
-                force = 0.0
+            sim.bell.pull = force
+            sim.step(force)
 
-            if bell.effect_force < 0.0:  # Can pull the entire handstroke
-                bell.wheel_force = force * bell.effect_force * wheel_force
-            else:  # Can only pull some of the backstroke
-                if bell.rlength > bell.max_length - bell.backstroke_pull:
-                    bell.wheel_force = force * bell.effect_force * wheel_force
-                else:
-                    bell.wheel_force = force * 0.0
-
-            bell.pull = force
+            fitness = fitness + sim.bell.fitness_increment(sim.phy)*(simulation_seconds)/(simulation_seconds)
 
             phy.count = phy.count + 1
 
-            # Check for force on wheel - this takes effect at the next timestep
+        # Check for force on wheel - this takes effect at the next timestep
+        # Check for actions or stay smash. All needs to be in the same event.get for some reason.
 
-            #print(bell.handstroke_targets, bell.backstroke_targets)
-            # Check for actions or stay smash. All needs to be in the same event.get for some reason.
+        if sim.bell.stay_hit > 0:
+            sim.bell.stay_angle = 1e6
+            fitness = 1e9#fitness*10.0  #Stay break penalty (quite extreme)
+            #print('Stay broken')
+            break
 
-            bell.timestep(phy)
-            fitness += bell.fitness_increment(phy)
-
-            if bell.stay_hit > 0:
-                bell.stay_angle = 1e6
-                fitness = fitness*1.5  #Stay break penalty
-                print('Stay broken')
-                break
-            # if count % 60 == 0:
-            #     #fitness = bell.fitness_fn(phy, print_accuracy = True)
-            #     print(bell.fitness_increment(phy)*60*60)
-            #     print('Time', phy.time, 'Angle', bell.bell_angle)
-
-            count += 1
-
-        fitness = fitness/phy.time
+        count += 1
 
         #print(fitness, phy.time, bell.bell_angle, bell.velocity)
         total_fitness += fitness
+
+    # print(fitness)
+    # plt.plot(sim.bell.bell_angles)
+    # plt.show()
 
     if total_fitness > 1e6:
         raise Exception("Run unsuccessful")
@@ -224,11 +229,11 @@ def run_cma_mp(n_cores=None):
         while not es.stop():
 
             #Let's try learning from near the top. See what that comes out with.
-            lower_limit = np.pi - 0.1
+            lower_limit = 0.0
             angles = np.random.uniform(lower_limit, np.pi+0.1, nsamples)
             angles = angles*np.sign(np.random.uniform(-1,1,nsamples))
 
-            angles = [np.pi+0.1]
+            angles = [0.0]
             print('Initial angles:', angles)
             solutions = es.ask()
 
@@ -248,14 +253,14 @@ def run_cma_mp(n_cores=None):
             es.tell(solutions, losses)
 
             for theta, loss in zip(solutions, losses):
-                print("Current score", loss)
+                #print("Current score", loss)
 
                 if loss == np.min(losses):
                     best_theta_local = theta
 
             #Evaluate from zero to see if it's actually getting any better...
 
-            #angles = [np.pi+0.1]
+            angles = [0.0]
             Net.update_network(best_theta_local)
 
             #loss = safe_evaluate_theta(best_theta_local, angles, es.sigma)
@@ -263,7 +268,7 @@ def run_cma_mp(n_cores=None):
 
             Net.save_current_state(mode, loss)
 
-            print('Actual loss for this generation (just over balance at backstroke):', loss)
+            print('Actual loss for this generation (from completely down):', loss)
             if loss < best_loss:
                 best_loss = loss
                 best_theta = best_theta_local.copy()
@@ -274,7 +279,7 @@ def run_cma_mp(n_cores=None):
 
 run_cma_mp(n_cores=8)
 
-#evaluate_theta(Net.parameter_set)
+#evaluate_theta(Net.parameter_set, [np.pi+0.1])
 #evaluate_theta(Net.parameter_set)
 
 
