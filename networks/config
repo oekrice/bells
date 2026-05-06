@@ -5,59 +5,77 @@
 [NEAT]
 fitness_criterion     = max
 fitness_threshold     = 50000.0
-pop_size              = 250
-reset_on_extinction   = 0
+pop_size              = 400
+reset_on_extinction   = False
+no_fitness_termination = False
 
 [DefaultGenome]
-num_inputs              = 2
-num_hidden              = 1
+num_inputs              = 3
+num_hidden              = 3
 num_outputs             = 1
-initial_connection      = unconnected
+initial_connection      = full_direct
 feed_forward            = True
-compatibility_disjoint_coefficient    = 1.0
-compatibility_weight_coefficient      = 0.6
-conn_add_prob           = 0.2
-conn_delete_prob        = 0.2
-node_add_prob           = 0.2
-node_delete_prob        = 0.2
-activation_default      = sigmoid
-activation_options      = sigmoid
-activation_mutate_rate  = 0.0
+
+compatibility_disjoint_coefficient = 1.0
+compatibility_weight_coefficient   = 0.4
+
+conn_add_prob           = 0.05
+conn_delete_prob        = 0.005
+node_add_prob           = 0.02
+node_delete_prob        = 0.001
+
+single_structural_mutation = False
+structural_mutation_surer  = default
+
+activation_default      = tanh
+activation_options      = tanh
+activation_mutate_rate  = 0.01
+
 aggregation_default     = sum
 aggregation_options     = sum
 aggregation_mutate_rate = 0.0
+
 bias_init_mean          = 0.0
-bias_init_stdev         = 1.0
-bias_replace_rate       = 0.1
-bias_mutate_rate        = 0.7
-bias_mutate_power       = 0.5
-bias_max_value          = 30.0
-bias_min_value          = -30.0
+bias_init_stdev         = 0.5
+bias_init_type          = gaussian
+bias_mutate_rate        = 0.35
+bias_mutate_power       = 0.15
+bias_replace_rate       = 0.02
+bias_max_value          = 10.0
+bias_min_value          = -10.0
+
 response_init_mean      = 1.0
 response_init_stdev     = 0.0
+response_init_type      = gaussian
 response_replace_rate   = 0.0
 response_mutate_rate    = 0.0
 response_mutate_power   = 0.0
 response_max_value      = 30.0
 response_min_value      = -30.0
 
-weight_max_value        = 30
-weight_min_value        = -30
+weight_max_value        = 15
+weight_min_value        = -15
 weight_init_mean        = 0.0
-weight_init_stdev       = 1.0
-weight_mutate_rate      = 0.8
-weight_replace_rate     = 0.1
-weight_mutate_power     = 0.5
+weight_init_stdev       = 0.5
+weight_init_type        = gaussian
+weight_mutate_rate      = 0.55
+weight_replace_rate     = 0.03
+weight_mutate_power     = 0.25
+
 enabled_default         = True
-enabled_mutate_rate     = 0.01
+enabled_mutate_rate     = 0.03
+enabled_rate_to_true_add = 0.0
+enabled_rate_to_false_add = 0.0
 
 [DefaultSpeciesSet]
 compatibility_threshold = 3.0
 
 [DefaultStagnation]
 species_fitness_func = max
-max_stagnation  = 20
+max_stagnation       = 30
+species_elitism      = 3
 
 [DefaultReproduction]
-elitism            = 2
-survival_threshold = 0.2
+elitism            = 3
+survival_threshold = 0.3
+min_species_size   = 3

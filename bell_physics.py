@@ -392,13 +392,13 @@ class init_bell:
 
     def get_scaled_state(self):
         """Get full system state, scaled into [0,1]."""
-        """Angle then velocity (obviously veclocity can be large)"""
+        """Angle then velocity (obviously velocity can be large)"""
         bt = max(self.backstroke_target/10.0,0)   #Time until desired stroke
         ht = max(self.handstroke_target/10.0,0)
         pb = self.last_backstroke/10.0     #Time since last stroke
         ph = self.last_handstroke/10.0
 
-        return [self.bell_angle / (np.pi + self.stay_angle), self.velocity / (10.0), bt, ht, self.m_1/1000, pb, ph]
+        return [np.cos(self.bell_angle), np.sin(self.bell_angle), self.velocity/10.0, bt, ht, self.m_1/1000, pb, ph]
 
     def establish_rhythm(self, reference_time):
         """Estalishes the desired times for each stroke"""
@@ -511,7 +511,7 @@ class init_bell:
         """Fitness function at a given time rather than evaulating after the fact"""
         """Must multiply by dt/tmax or equivalent"""
         mult = 60.0 * phy.FPS
-        if False:  # RINGING DOWN
+        if self.current_mode == 'down':
 
             if np.abs(self.bell_angle) > np.pi:
                 # Bell is over the balance
@@ -531,30 +531,24 @@ class init_bell:
 
             return fitness_increment/mult
 
-        else:   #RINGING UP
-            if self.bell_angle > np.pi and self.stay_hit == 0:
-                up_handstroke = True
-            else:
-                up_handstroke = False
-            if self.bell_angle < -np.pi and self.stay_hit == 0:
-                up_backstroke = True
-            else:
-                up_backstroke = False
-            force_fraction = 0.1 #How much to care about the force applied at each stroke
-            alpha = 4  #Distance factor
-            forceness = (1.0 - self.pull)**alpha
-            if self.bell_angle > 0.0:
-                side_factor = 0.8
-            else:
-                side_factor = 0.7  #discourage lingering at backstroke. But not terribly so.
-            if up_handstroke:
-                fitness_increment = 1.0*((1.0 - force_fraction) + forceness*force_fraction)
-            elif up_backstroke:
-                fitness_increment = 0.5*((1.0 - force_fraction) + forceness*force_fraction)
-            else:
-                upcos = 0.5 - 0.5*np.cos(self.bell_angle)
-                upness = side_factor*(upcos)**alpha
-                fitness_increment = force_fraction*forceness + (1.0 - force_fraction)*upness
+        elif self.current_mode == 'up':
 
+            #Just want it as close to possible at handstroke. Should work for training top-down
+            force_fraction = 0.1 #How much to care about the force applied at each stroke
+            alpha = 2  #Distance factor
+            forceness = (1.0 - self.pull)**alpha
+
+            if True:
+                if self.bell_angle < 0.0:
+                    upness = 0.0#np.pi**alpha
+                else:
+                    upness = max(1.0 - (1.0 - self.bell_angle/np.pi)**alpha, 0.0)
+            else: #Not sure if this will work... I think it'll need to get over itself very carefully.
+                upness = (np.pi - self.bell_angle/np.pi)**alpha
+
+            fitness_increment = upness*(1.0 + force_fraction*forceness)
 
             return fitness_increment/mult
+        else:
+            raise Exception('Current mode not found')
+

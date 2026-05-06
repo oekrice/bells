@@ -146,34 +146,34 @@ class Population(object):
 
             if best.fitness > overall_best_fitness:
                 overall_best_fitness = best.fitness
-                with open("current_best", "wb") as f:
+                with open("./neat_networks/current_best", "wb") as f:
                     pickle.dump(self.best_genome, f)
 
-                with open("./population_data/population_best", "wb") as f:
+                with open("./neat_networks/population_data/population_best", "wb") as f:
                     pickle.dump(self.population, f)
 
-                with open("./population_data/species_best", "wb") as f:
+                with open("./neat_networks/population_data/species_best", "wb") as f:
                     pickle.dump(self.species, f)
 
-                with open("./population_data/generation_best", "wb") as f:
+                with open("./neat_networks/population_data/generation_best", "wb") as f:
                     pickle.dump(self.generation, f)
 
-                with open("./population_data/config_best", "wb") as f:
+                with open("./neat_networks/population_data/config_best", "wb") as f:
                     pickle.dump(self.config, f)
 
-            with open("./population_data/population", "wb") as f:
+            with open("./neat_networks/population_data/population", "wb") as f:
                 pickle.dump(self.population, f)
 
-            with open("./population_data/species", "wb") as f:
+            with open("./neat_networks/population_data/species", "wb") as f:
                 pickle.dump(self.species, f)
 
-            with open("./population_data/generation", "wb") as f:
+            with open("./neat_networks/population_data/generation", "wb") as f:
                 pickle.dump(self.generation, f)
 
-            with open("./population_data/config", "wb") as f:
+            with open("./neat_networks/population_data/config", "wb") as f:
                 pickle.dump(self.config, f)
 
-            with open("./current_network/%d" % (self.generation-1), "wb") as f:
+            with open("./neat_networks/current_network/%d" % (self.generation-1), "wb") as f:
                 pickle.dump(best, f)
 
             k += 1

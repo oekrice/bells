@@ -22,24 +22,25 @@ import numpy as np
 
 # load the winner
 
+
 if len(sys.argv) > 1:
     load_num = int(sys.argv[1])
 else:
     load_num = -1
 
 if load_num < 0:
-    with open("current_best", "rb") as f:
+    with open("./neat_networks/current_best", "rb") as f:
         c = pickle.load(f)
 
 else:
-    with open("./current_network/%d" % (load_num ), "rb") as f:
+    with open("./neat_networks/current_network/%d" % (load_num ), "rb") as f:
         c = pickle.load(f)
 
 print("Loaded genome:")
 print(c)
 
-up_time = 20.0   #Only measure performance after this point
-simulation_seconds = 60.0
+up_time = 0.0   #Only measure performance after this point
+simulation_seconds = 20.0
 
 # Load the config file, which is assumed to live in
 # the same directory as this script.
@@ -53,8 +54,10 @@ net = neat.nn.FeedForwardNetwork.create(c, config)
 sim = run_bell()
 # Run the given simulation for up to 120 seconds.
 
-sim.bell.m_1 = uniform(150,550)
-sim.bell.m_2 = 0.05*sim.bell.m_1
+# sim.bell.m_1 = 500.0
+# sim.bell.m_2 = 0.05*sim.bell.m_1
+
+sim.bell.current_mode = 'up'
 
 if False:
     if random.random() < 0.5:
@@ -64,7 +67,7 @@ if False:
         sim.bell.bell_angle = uniform(-np.pi-0.5*sim.bell.stay_angle, -np.pi -sim.bell.stay_angle)
         sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
 
-sim.bell.stay_break_limit = 0.4
+sim.bell.stay_break_limit = 0.2
 
 runs = 15; runs_per_net = 30
 amin = np.pi * 0.9; amax = np.pi
@@ -74,8 +77,8 @@ rmax = (runs//2+1)*(amax - amin)/(runs_per_net//2) + amin
 if runs%2 == 0:
     rmin = -rmin; rmax = -rmax
 
-sim.bell.bell_angle = 0.0#uniform(rmin, rmax)
-sim.bell.clapper_angle = 0.0#np.sign(bell.bell_angle)*bell.clapper_limit + bell.bell_angle
+sim.bell.bell_angle = np.pi- 0.1
+sim.bell.clapper_angle = np.sign(sim.bell.bell_angle)*sim.bell.clapper_limit + sim.bell.bell_angle
 
 if np.abs(sim.bell.bell_angle) < 0.5:
     sim.bell.max_length = 0.0  # max backstroke length
@@ -129,7 +132,7 @@ while sim.phy.time < simulation_seconds:
 #print(sim.bell.handstroke_accuracy)
 #print(sim.bell.backstroke_accuracy)
 #print(sim.bell.forces)
-fitness = sim.bell.fitness_fn(sim.phy, print_accuracy = True)
+#fitness = sim.bell.fitness_fn(sim.phy, print_accuracy = True)
 print("fitness", fitness)
 
 #print()
@@ -243,7 +246,7 @@ def plot_rounds():
     #plt.show()
     plt.close()
 
-plot_rounds()
+#plot_rounds()
 
 
 

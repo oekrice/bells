@@ -46,13 +46,13 @@ class run_bell(object):
     def get_scaled_state(self):
         """Get full system state, scaled into [0,1]."""
         """Angle then velocity (obviously veclotiy can be large)"""
-
-        return self.bell.get_scaled_state()
-
+        if self.bell.current_mode == 'up' or self.bell.current_mode == 'down':
+            return self.bell.get_scaled_state()[:3]  #Just the position and velocity, nothing fancy
+        else:
+            return self.bell.get_scaled_state()
 
 def continuous_actuator_force(action):
     return action[0]
-
 
 def discrete_actuator_force(action):
     if action[0] > 0.5:

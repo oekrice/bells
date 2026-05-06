@@ -14,18 +14,20 @@ import numpy as np
 from random import uniform, gauss
 import random
 
-runs_per_net = 30
-simulation_seconds = 60.0
+runs_per_net = 10
+simulation_seconds = 20.0
 ngenerations = 2000
 up_time = 0.0   #Only measure performance after this point
 
-use_existing_population = True #Load an existing network that is presumably better than nothing
+use_existing_population = False #Load an existing network that is presumably better than nothing
 use_best = True #Use best population rather than the most recent one
+
+mode = 'up' #Whether to ring up, down, or steadily.
 
 if not use_existing_population:
     for i in range(0,10000):
-        if os.path.isfile('./current_network/%d' % i):
-            os.remove('./current_network/%d' % i)
+        if os.path.isfile('./neat_networks/current_network/%d' % i):
+            os.remove('./neat_networks/current_network/%d' % i)
 
 # Use the NN network phenotype and the discrete actuator force function.
 def eval_genome(genome, config):
@@ -35,6 +37,7 @@ def eval_genome(genome, config):
 
     for runs in range(runs_per_net):
         sim = run_bell()  # all the physics in here
+        sim.bell.current_mode = mode
 
         if False:
             if random.random() < 0.0:   #pick a random angle
@@ -48,20 +51,24 @@ def eval_genome(genome, config):
                     sim.bell.bell_angle = uniform(-np.pi-0.95*sim.bell.stay_angle, -np.pi-sim.bell.stay_angle)
                     sim.bell.clapper_angle = sim.bell.bell_angle - sim.bell.clapper_limit + 0.01
 
-        #amin = -np.pi-sim.bell.stay_angle; amax = np.pi+sim.bell.stay_angle   #range of initial conditions. Need a bit of randomness
+        #amin = -np.pi-sim.bell.stay_angle; amax = np.pi+sim.bell.stay_angle   #range of initial conditions. Need a bit of randomness I think. But maybe not.
         #Now some symmetry
-        amin = 0.0*np.pi; amax = 0.1*np.pi
-        rmin = (runs//2)*(amax - amin)/(runs_per_net//2) + amin
-        rmax = (runs//2+1)*(amax - amin)/(runs_per_net//2) + amin
+        # amin = 0.0*np.pi; amax = 0.1*np.pi
+        if sim.bell.current_mode == 'up':
+            amin = np.pi - 0.1; amax = np.pi + 0.1   #Bell is up at the correct stroke
+            rmin = (runs//2)*(amax - amin)/(runs_per_net//2) + amin
+            rmax = (runs//2+1)*(amax - amin)/(runs_per_net//2) + amin
 
-        sim.bell.bell_angle = uniform(rmin, rmax)
+            sim.bell.bell_angle = uniform(rmin, rmax)
+            if runs%2 == 0:
+                sim.bell.bell_angle = -sim.bell.bell_angle
 
-        if runs%2 == 0:
-            sim.bell.bell_angle = -sim.bell.bell_angle
+        else:
+            raise Exception('Run mode not recognised')
 
         sim.bell.clapper_angle = np.sign(sim.bell.bell_angle)*sim.bell.clapper_limit + sim.bell.bell_angle
 
-        sim.bell.stay_break_limit = 0.4
+        sim.bell.stay_break_limit = 0.2
 
         sim.bell.velocity = 0.0
 
@@ -75,9 +82,12 @@ def eval_genome(genome, config):
         while sim.phy.time < simulation_seconds:
             # Inputs are the things we can know -- in my case it is the angle and speed of the bell (for now)
             # Do try to remember to get inputs in the range (0,1). Can do easily enough.
-            inputs = sim.get_scaled_state()[:2]
+            if sim.bell.current_mode == 'up':
+                inputs = sim.get_scaled_state()[:3]
+
             # This is just a list.
             action = net.activate(inputs)
+
             # Apply action to the simulated cart-pole
             force = continuous_actuator_force(action)
             sim.bell.pull = force
@@ -88,9 +98,11 @@ def eval_genome(genome, config):
 
             if sim.phy.time > up_time:
                 fitness = fitness + sim.bell.fitness_increment(sim.phy)*(simulation_seconds)/(simulation_seconds - up_time)
-        fitness = sim.bell.fitness_fn(sim.phy)
-
+        #fitness = sim.bell.fitness_fn(sim.phy)
+        if sim.bell.stay_hit > 0:
+            fitness = 0.0
         fitnesses.append(fitness)
+        #print('Bell position at end:', sim.bell.bell_angle, sim.bell.velocity, fitness, sim.bell.stay_hit)
     # The genome's fitness is now its average.
     avg = sum(fitnesses)/len(fitnesses)
     #if max(fitnesses) > 1:
@@ -120,18 +132,18 @@ def run():
 
     if use_existing_population:
         if not use_best:
-            with open("population_data/population", "rb") as f:
+            with open("./neat_networks/population_data/population", "rb") as f:
                 pop_old = pickle.load(f)
-            with open("population_data/species", "rb") as f:
+            with open("./neat_networks/population_data/species", "rb") as f:
                 species_old = pickle.load(f)
-            with open("population_data/generation", "rb") as f:
+            with open("./neat_networks/population_data/generation", "rb") as f:
                 generation_old = pickle.load(f)
         else:
-            with open("population_data/population_best", "rb") as f:
+            with open("./neat_networks/population_data/population_best", "rb") as f:
                 pop_old = pickle.load(f)
-            with open("population_data/species_best", "rb") as f:
+            with open("./neat_networks/population_data/species_best", "rb") as f:
                 species_old = pickle.load(f)
-            with open("population_data/generation_best", "rb") as f:
+            with open("./neat_networks/population_data/generation_best", "rb") as f:
                 generation_old = pickle.load(f)
         initial_state = (pop_old, species_old, generation_old)
         pop = neat.Population(config, initial_state = initial_state)
@@ -146,8 +158,8 @@ def run():
     #pe = neat.ParallelEvaluator(1, eval_genome)
     winner = pop.run(pe.evaluate, n=ngenerations)
 
-    # Save the winner.
-    with open("winner_bell", "wb") as f:
+    # Save the winner. I suppose this never actually happens...
+    with open(f"./neat_networks/best_{mode}", "wb") as f:
         pickle.dump(winner, f)
 
 
