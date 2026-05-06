@@ -92,10 +92,6 @@ def evaluate_theta(theta, angles):
     total_fitness = 0.0
 
     for init_angle in angles:
-        phy = init_physics()
-        phy.do_volume = False
-
-        bell = initialise_bell(phy, init_angle, 0.0)
 
         wheel_force = 600  # Max. force on the rope (in Newtons)
         count = 0
@@ -104,8 +100,6 @@ def evaluate_theta(theta, angles):
         ring_up = False
         ring_down = False
         ring_steady = False
-
-        bell.current_mode = mode
 
         Net.update_network(theta)
 
@@ -148,74 +142,16 @@ def evaluate_theta(theta, angles):
                 action = Net.force(inputs[:2])
                 force = min(1.0, action[0])
 
-            sim.bell.pull = force#1.0/(1.0 + np.exp(-x))
+            sim.bell.pull = force
             sim.step(force)
 
             fitness = fitness + sim.bell.fitness_increment(sim.phy)
 
             sim.phy.count = sim.phy.count + 1
 
-            if sim.bell.stay_hit > 0:
-                #print('Stay broken')
-                sim.bell.stay_angle = 1e6
-                fitness = fitness + 10.0
-
-        # fitness = 0.0
-        #
-        # while phy.time < max_time:  # the main game loop
-        #
-        #     # Check for inputs that affect the timestep
-        #     force = 0.0  # This value between 0 and 1 and then update based on the physics
-        #
-        #     inputs = bell.get_scaled_state()
-        #
-        #     if bell.current_mode == 'up':
-        #         ring_up = True
-        #         action = Net.force(inputs[:2])
-        #         force = min(1.0, force + action[0])
-        #
-        #     if bell.current_mode == 'down':
-        #         ring_down = True
-        #         action = Net.force(inputs[:2])
-        #         force = min(1.0, force + action[0])
-        #
-        #     if bell.current_mode == 'steady':
-        #         ring_steady = True
-        #         action = Net.force(inputs)
-        #         force = min(1.0, force + action[0])
-        #
-        #     if bell.stay_hit > 0:
-        #         force = 0.0
-        #
-        #     if bell.effect_force < 0.0:  # Can pull the entire handstroke
-        #         bell.wheel_force = force * bell.effect_force * wheel_force
-        #     else:  # Can only pull some of the backstroke
-        #         if bell.rlength > bell.max_length - bell.backstroke_pull:
-        #             bell.wheel_force = force * bell.effect_force * wheel_force
-        #         else:
-        #             bell.wheel_force = force * 0.0
-        #
-        #     bell.pull = force
-        #
-        #     phy.count = phy.count + 1
-        #
-        #     # Check for force on wheel - this takes effect at the next timestep
-        #
-        #     #print(bell.handstroke_targets, bell.backstroke_targets)
-        #     # Check for actions or stay smash. All needs to be in the same event.get for some reason.
-        #
-        #     bell.timestep(phy)
-        #     fitness += bell.fitness_increment(phy)
-        #
-        #     if bell.stay_hit > 0:
-        #         bell.stay_angle = 1e6
-        #
-        #     # if count % 60 == 0:
-        #     #     #fitness = bell.fitness_fn(phy, print_accuracy = True)
-        #     #     print(bell.fitness_increment(phy)*60*60)
-        #     #     print('Time', phy.time, 'Angle', bell.bell_angle)
-        #
-        #     count += 1
+        if sim.bell.stay_hit > 0:
+            sim.bell.stay_angle = 1e6
+            fitness = fitness + 10.0
 
         total_fitness += fitness
 
@@ -253,7 +189,7 @@ def run_cma_mp(n_cores=None):
 
     print('Ncores:', n_cores, 'Population size', popsize)
 
-    es = cma.CMAEvolutionStrategy(Net.parameter_set, 0.25, {'verb_disp': 1, 'popsize': popsize})
+    es = cma.CMAEvolutionStrategy(Net.parameter_set,0.5, {'verb_disp': 1, 'popsize': popsize})
 
     angles = [np.random.uniform(-0.1, 0.1)]
 

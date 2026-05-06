@@ -526,8 +526,8 @@ class init_bell:
 
         elif self.current_mode == 'up':   #RINGING UP
 
-            if self.stay_hit > 0:  #Heavily penalise breaking a stay
-                return 1e12
+            # if self.stay_hit > 0:  #Heavily penalise breaking a stay
+            #     return 1e12
 
             if self.bell_angle > np.pi and self.stay_hit == 0:
                 up_handstroke = True
