@@ -155,10 +155,13 @@ class ForceNet():
         self.biases_out[:] = self.parameter_set[self.n_inputs*self.n_nodes+self.n_nodes*2:self.n_inputs*self.n_nodes+self.n_nodes*2+1]
         return
 
-    def load_latest_state(self, fname='net_state.txt'):
+    def load_latest_state(self, mode):
         """
         Loads the last state found in the log, not necessarily the best
         """
+
+        fname = f'./nets/{mode}.txt'
+
         if os.path.exists(fname):
             best_score = 1e6; best_id = 0
             best_parameters = []
@@ -174,6 +177,33 @@ class ForceNet():
             raise Exception('Log file not found...')
 
         self.parameter_set[:] = np.array(best_parameters)
+        self.weights_in[:,:] = np.reshape(self.parameter_set[0:self.n_inputs*self.n_nodes], shape = np.shape(self.weights_in))
+        self.biases_in[:] = self.parameter_set[self.n_inputs*self.n_nodes:self.n_inputs*self.n_nodes+self.n_nodes]
+        self.weights_out[:] = self.parameter_set[self.n_inputs*self.n_nodes+self.n_nodes:self.n_inputs*self.n_nodes+self.n_nodes*2]
+        self.biases_out[:] = self.parameter_set[self.n_inputs*self.n_nodes+self.n_nodes*2:self.n_inputs*self.n_nodes+self.n_nodes*2+1]
+        return
+
+    def load_specific_state(self, mode, number):
+        """
+        Loads the last state found in the log, not necessarily the best
+        """
+
+        fname = f'./nets/{mode}.txt'
+
+        if os.path.exists(fname):
+            best_score = 1e6; best_id = 0
+            specific_parameters = []
+            with open(fname, "r") as f:
+                data = f.readlines()
+                cut = len(data)
+                line = data[number]
+
+            for val in data[number].split(' ')[2:]:
+                specific_parameters.append(float(val))
+        else:
+            raise Exception('Log file not found...')
+
+        self.parameter_set[:] = np.array(specific_parameters)
         self.weights_in[:,:] = np.reshape(self.parameter_set[0:self.n_inputs*self.n_nodes], shape = np.shape(self.weights_in))
         self.biases_in[:] = self.parameter_set[self.n_inputs*self.n_nodes:self.n_inputs*self.n_nodes+self.n_nodes]
         self.weights_out[:] = self.parameter_set[self.n_inputs*self.n_nodes+self.n_nodes:self.n_inputs*self.n_nodes+self.n_nodes*2]

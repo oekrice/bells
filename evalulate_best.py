@@ -65,7 +65,7 @@ def initialise_bell(phy, angle=0.0, velocity = 0.0):
 
     return bell
 
-Net = ForceNet(4, 2)
+Net = ForceNet(2, 2)
 Net.generate_random_seed()
 
 #nets = Networks()  #This is the old networks one
@@ -80,7 +80,7 @@ extend_net = False
 def evaluate_theta(theta):
     global mode
 
-    angles = np.linspace(-np.pi-0.1, np.pi+0.1, 11)
+    angles = [np.pi+0.1]
     total_fitness = 0.0
 
     for init_angle in angles:
@@ -150,7 +150,6 @@ def evaluate_theta(theta):
             if bell.stay_hit > 0:
                 bell.stay_angle = 1e6
 
-
             # if count % 60 == 0:
             #     #fitness = bell.fitness_fn(phy, print_accuracy = True)
             #     print(bell.fitness_increment(phy)*60*60)
@@ -158,64 +157,102 @@ def evaluate_theta(theta):
 
             count += 1
 
-        plt.plot(bell.bell_angles)
+        #plt.plot(bell.bell_angles)
         #plt.plot(bell.forces)
-    plt.show()
+    #plt.show()
 
     print('Fitness', fitness)
-    return fitness
+    return bell.bell_angles, bell.velocities
 
 if load_best:
-    Net.load_best_state(mode, override_nnodes=True)
+    Net.load_latest_state(mode)
     print('Loaded best state')
 else:
     Net.generate_random_seed()
     print('Generated random state')
 
-if extend_net:
-    print(f'Extending net to {n_nodes_target} nodes')
-    Net.extend_net(n_nodes_target=n_nodes_target)
-    n_nodes = n_nodes_target
+while True:
 
-if True:
-    fitness = evaluate_theta(Net.parameter_set)
-
-elif False:
-    #Plot best scores.
+    data_length = 0
     fname = f'./nets/{mode}.txt'
-    scores = []; best_scores = []
-    #Determine the correct number of parameters for this best state
+
     if os.path.exists(fname):
         best_score = 1e6; best_id = 0
-        best_parameters = []
+        specific_parameters = []
         with open(fname, "r") as f:
             data = f.readlines()
-            cut = len(data)
-            for li, line in enumerate(data[-cut:]):
-                if float(line.split(' ')[1]) < best_score:
-                    best_score = float(line.split(' ')[1])
-                    best_id = len(data) - cut + li
-                if float(line.split(' ')[1]) < 1000.0:
-                    best_scores.append(best_score)
-                    scores.append(float(line.split(' ')[1]))
-    plt.plot(scores)
-    plt.xscale('log')
-    plt.yscale('log')
-    plt.show()
+        for i in range(len(data)):
+            score = float(data[i].split(" ")[1])
+            if score < best_score:
+                best_score = score
+                best_id = i
 
-elif True:
-    #Attempt a colourmap?
-    angles = np.linspace(-np.pi-0.1, np.pi+0.1,250)
-    velocities = np.linspace(-10,10,250)
-    cmap = np.zeros((len(angles), len(velocities)))
-    for i, angle in enumerate(angles):
-        for j, velocity in enumerate(velocities):
-            cmap[i,j] = Net.force([angle,velocity])[0]
-    plt.pcolormesh(angles, velocities, cmap.T)
-    plt.xlabel('Bell angle')
-    plt.ylabel('Bell velocity')
-    plt.colorbar()
-    plt.show()
+    best_id = len(data) - 1
+    success = False
+    while not success:
+        try:
+            Net.load_specific_state(mode,best_id)
+            success = True
+        except:
+            time.sleep(1.0)
+
+    print('Loading state', best_id)
+    score = data[best_id].split(" ")[1]
+    log_num  = best_id
+    print('Score:', score)
+    #Net.load_best_state(mode,log_num)
+
+    if extend_net:
+        print(f'Extending net to {n_nodes_target} nodes')
+        Net.extend_net(n_nodes_target=n_nodes_target)
+        n_nodes = n_nodes_target
+
+    if False:
+        fitness = evaluate_theta(Net.parameter_set)
+
+    elif False:
+        #Plot best scores.
+        fname = f'./nets/{mode}.txt'
+        scores = []; best_scores = []
+        #Determine the correct number of parameters for this best state
+        if os.path.exists(fname):
+            best_score = 1e6; best_id = 0
+            best_parameters = []
+            with open(fname, "r") as f:
+                data = f.readlines()
+                cut = len(data)
+                for li, line in enumerate(data[-cut:]):
+                    if float(line.split(' ')[1]) < best_score:
+                        best_score = float(line.split(' ')[1])
+                        best_id = len(data) - cut + li
+                    if float(line.split(' ')[1]) < 1000.0:
+                        best_scores.append(best_score)
+                        scores.append(float(line.split(' ')[1]))
+        plt.plot(scores)
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.show()
+
+    elif True:
+
+        bell_angles, bell_velocities = evaluate_theta(Net.parameter_set)
+
+        plt.plot(bell_angles, bell_velocities, c = 'red')
+        #Attempt a colourmap?
+        angles = np.linspace(-np.pi-0.15, np.pi+0.15,250)
+        velocities = np.linspace(-10,10,250)
+        cmap = np.zeros((len(angles), len(velocities)))
+        for i, angle in enumerate(angles):
+            for j, velocity in enumerate(velocities):
+                cmap[i,j] = Net.force([angle,velocity])[0]
+        plt.pcolormesh(angles, velocities, cmap.T)
+        plt.xlabel('Bell angle')
+        plt.ylabel('Bell velocity')
+        plt.colorbar()
+        plt.title(f'{log_num}, {score}')
+        plt.tight_layout()
+        plt.savefig('./plots/%d_cmap.png' % log_num)
+        plt.close()
 
 
 

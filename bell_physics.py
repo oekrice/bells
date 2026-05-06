@@ -104,7 +104,7 @@ class init_bell:
         self.volume_ref = 0.0
         self.clapper_friction = 0.1 * self.friction
         self.stay_hit = False
-        self.stay_break_limit = 1.0
+        self.stay_break_limit = 1.0   #This was previously 1. Let's just make it unbreakable for a bit.
 
         self.bell_angles = []
         self.velocities = []
@@ -526,8 +526,8 @@ class init_bell:
 
         elif self.current_mode == 'up':   #RINGING UP
 
-            if self.stay_hit > 0:  #Heavily penalise breaking a stay
-                return 1e12
+            # if self.stay_hit > 0:  #Heavily penalise breaking a stay
+            #     return 1e9
 
             if self.bell_angle > np.pi and self.stay_hit == 0:
                 up_handstroke = True
@@ -537,13 +537,16 @@ class init_bell:
                 up_backstroke = True
             else:
                 up_backstroke = False
-            force_fraction = 0.1 #How much to care about the force applied at each stroke
+            force_fraction = 0.0 #How much to care about the force applied at each stroke
             alpha = 2  #Distance factor
             forceness = self.pull**alpha
 
-            if self.bell_angle < 0.0:
-                upness = np.pi**alpha
-            else:
+            if False:
+                if self.bell_angle < 0.0:
+                    upness = np.pi**alpha
+                else:
+                    upness = (np.pi - self.bell_angle/np.pi)**alpha
+            else: #Not sure if this will work... I think it'll need to get over itself very carefully.
                 upness = (np.pi - self.bell_angle/np.pi)**alpha
 
             fitness_increment = upness*(1.0 + force_fraction*forceness)

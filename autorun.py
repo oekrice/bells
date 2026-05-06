@@ -37,7 +37,6 @@ if len(sys.argv) > 1:
 else:
     load_num = -1
 
-
 audio_enabled = False
 
 phy = init_physics()
@@ -57,14 +56,14 @@ def initialise_bell(phy, angle=0.0, velocity = 0.0):
         bell.max_length = bell.radius*(1.0 + 3*np.pi/2 - bell.garter_hole)
 
     bell.target_period = 5.0
-    bell.stay_break_limit = 1.0
+    bell.stay_break_limit = 0.5# 0.15 seems to be the limit of dropping the bell
 
     bell.m_1 = 500   #Bell mass
     bell.m_2 = 0.05*bell.m_1   #Clapper mass
 
     return bell
 
-n_nodes = 4
+n_nodes = 2
 Net = ForceNet(n_nodes, 2)
 Net.generate_random_seed()
 
@@ -72,10 +71,11 @@ Net.generate_random_seed()
 
 strike_limit = 1.0
 
-max_time = 120.0
+max_time = 20.0
 mode = 'up'
-load_best = True
+load_best = False
 extend_net = True
+
 
 if extend_net:
     n_nodes_target = n_nodes
@@ -83,17 +83,18 @@ if extend_net:
     Net.extend_net(n_nodes_target=n_nodes_target)
     n_nodes = n_nodes_target
 
-def evaluate_theta(theta):
+def evaluate_theta(theta, angles):
     global mode
 
-    angles = np.linspace(-np.pi-0.1, np.pi+0.1, 11)
     total_fitness = 0.0
 
-    for init_angle in angles:
+    for initial_angle in angles:
+        #Perhaps start off near the top and gradually work down? Worth a shot.
+
         phy = init_physics()
         phy.do_volume = False
 
-        bell = initialise_bell(phy, init_angle, 0.0)
+        bell = initialise_bell(phy, initial_angle, 0.0)
 
         wheel_force = 600  # Max. force on the rope (in Newtons)
         count = 0
@@ -154,7 +155,9 @@ def evaluate_theta(theta):
 
             if bell.stay_hit > 0:
                 bell.stay_angle = 1e6
-
+                fitness = fitness*1.5  #Stay break penalty
+                print('Stay broken')
+                break
             # if count % 60 == 0:
             #     #fitness = bell.fitness_fn(phy, print_accuracy = True)
             #     print(bell.fitness_increment(phy)*60*60)
@@ -162,10 +165,14 @@ def evaluate_theta(theta):
 
             count += 1
 
+        fitness = fitness/phy.time
+
+        #print(fitness, phy.time, bell.bell_angle, bell.velocity)
         total_fitness += fitness
 
     if total_fitness > 1e6:
-        total_fitness = 1e12
+        raise Exception("Run unsuccessful")
+        total_fitness = 1e9
 
     return total_fitness
 
@@ -183,8 +190,18 @@ if extend_net:
 
 #fitness = evaluate_theta(Net.parameter_set)
 
+def safe_evaluate_theta(theta, angles, sigma):
+    for _ in range(3):
+        try:
+            return evaluate_theta(theta, angles)
+        except:
+            theta = theta + 0.1 * sigma * np.random.randn(*theta.shape)
+
+    return 1e9
+
 def run_cma_mp(n_cores=None):
     global mode
+    global initial_angle
     if n_cores is None:
         n_cores = 1
 
@@ -192,8 +209,9 @@ def run_cma_mp(n_cores=None):
     best_loss = float("inf")
     best_theta = None
 
+    nsamples = 4
     popsize = n_cores
-    while popsize < 16:
+    while popsize < 32:
          popsize += n_cores
 
     print('Ncores:', n_cores, 'Population size', popsize)
@@ -201,32 +219,53 @@ def run_cma_mp(n_cores=None):
     es = cma.CMAEvolutionStrategy(Net.parameter_set, 0.25, {'verb_disp': 1, 'popsize': popsize})
 
     with mp.Pool(processes=n_cores) as pool:
+
         while not es.stop():
+
+            #Let's try learning from near the top. See what that comes out with.
+            lower_limit = np.pi - 0.1
+            angles = np.random.uniform(lower_limit, np.pi+0.1, nsamples)
+            angles = angles*np.sign(np.random.uniform(-1,1,nsamples))
+
+            angles = [np.pi+0.1]
+            print('Initial angles:', angles)
             solutions = es.ask()
 
             results = [
-                pool.apply_async(evaluate_theta, (theta,))
+                pool.apply_async(safe_evaluate_theta, (theta,angles, es.sigma))
                 for theta in solutions
             ]
 
             losses = []
             for r in results:
                 try:
-                    losses.append(r.get(timeout=5.0))
+                    losses.append(r.get(timeout=10.0))
                 except Exception:
-                    losses.append(1e12)
+                    print('Run failed for some reason...')
+                    losses.append(1e9)
 
             es.tell(solutions, losses)
 
             for theta, loss in zip(solutions, losses):
                 print("Current score", loss)
 
-                Net.update_network(theta)
-                Net.save_current_state(mode, loss)
+                if loss == np.min(losses):
+                    best_theta_local = theta
 
-                if loss < best_loss:
-                    best_loss = loss
-                    best_theta = theta.copy()
+            #Evaluate from zero to see if it's actually getting any better...
+
+            #angles = [np.pi+0.1]
+            Net.update_network(best_theta_local)
+
+            #loss = safe_evaluate_theta(best_theta_local, angles, es.sigma)
+            loss = evaluate_theta(best_theta_local, angles)
+
+            Net.save_current_state(mode, loss)
+
+            print('Actual loss for this generation (just over balance at backstroke):', loss)
+            if loss < best_loss:
+                best_loss = loss
+                best_theta = best_theta_local.copy()
 
             print(es.countiter)
 
