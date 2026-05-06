@@ -65,7 +65,7 @@ def initialise_bell(phy, angle=0.0, velocity = 0.0):
     return bell
 
 n_nodes = 2
-n_inputs = 2
+n_inputs = 6
 Net = ForceNet(n_nodes, n_inputs)
 Net.generate_random_seed()
 
@@ -73,7 +73,7 @@ Net.generate_random_seed()
 
 strike_limit = 1.0
 
-max_time = 20.0
+simulation_seconds = 60.0
 mode = 'up'
 load_best = False
 extend_net = True
@@ -89,13 +89,12 @@ def evaluate_theta(theta, angles):
     global mode
 
     total_fitness = 0.0
-    simulation_seconds = 60.0
 
     for initial_angle in angles:
         #Perhaps start off near the top and gradually work down? Worth a shot.
 
-        phy = init_physics()
-        phy.do_volume = False
+        # phy = init_physics()
+        # phy.do_volume = False
 
         #bell = initialise_bell(phy, initial_angle, 0.0)
         sim = run_bell()  # all the physics in here
@@ -115,9 +114,7 @@ def evaluate_theta(theta, angles):
         # Check for inputs that affect the timestep
         force = 0.0  # This value between 0 and 1 and then update based on the physics.
 
-        #amin = 0.0*np.pi; amax = 0.1*np.pi
-
-        sim.bell.bell_angle = initial_angle# uniform(amin, amax)
+        sim.bell.bell_angle = initial_angle
 
         sim.bell.clapper_angle = np.sign(sim.bell.bell_angle)*sim.bell.clapper_limit + sim.bell.bell_angle
 
@@ -133,8 +130,9 @@ def evaluate_theta(theta, angles):
         # Run the given simulation for up to num_steps time steps.
         fitness = 0.0
         while sim.phy.time < simulation_seconds:
+            force = 0.0  # This value between 0 and 1 and then update based on the physics.
 
-            inputs = sim.bell.get_scaled_state()[:2]
+            inputs = sim.bell.get_scaled_state()
 
             if sim.bell.current_mode == 'up':
                 ring_up = True
@@ -151,30 +149,32 @@ def evaluate_theta(theta, angles):
                 action = Net.force(inputs)
                 force = min(1.0, action[0])
 
-            sim.bell.pull = force
+            #force = 1.0/(1.0 + np.exp(-10*inputs[0]))
+            sim.bell.pull = force#1.0/(1.0 + np.exp(-x))
+
             sim.step(force)
 
-            fitness = fitness + sim.bell.fitness_increment(sim.phy)*(simulation_seconds)/(simulation_seconds)
+            fitness = fitness + sim.bell.fitness_increment(sim.phy)
 
-            phy.count = phy.count + 1
+            sim.phy.count = sim.phy.count + 1
 
         # Check for force on wheel - this takes effect at the next timestep
         # Check for actions or stay smash. All needs to be in the same event.get for some reason.
+        fitness = (np.pi + sim.bell.stay_angle - np.max(sim.bell.bell_angles))**2
 
         if sim.bell.stay_hit > 0:
             sim.bell.stay_angle = 1e6
-            fitness = 1e9#fitness*10.0  #Stay break penalty (quite extreme)
+            fitness = (2*sim.bell.stay_angle)**2  #Stay break penalty (quite extreme)
             #print('Stay broken')
             break
 
         count += 1
+        print('Max. angle', np.max(sim.bell.bell_angles), 'fitness', fitness)
 
         #print(fitness, phy.time, bell.bell_angle, bell.velocity)
         total_fitness += fitness
 
-    # print(fitness)
-    # plt.plot(sim.bell.bell_angles)
-    # plt.show()
+        print('Fitness for angle', initial_angle, ':', fitness)
 
     if total_fitness > 1e6:
         raise Exception("Run unsuccessful")
@@ -184,6 +184,7 @@ def evaluate_theta(theta, angles):
 
 if load_best:
     Net.load_best_state(mode, override_nnodes=True)
+    #Net.load_latest_state(mode)
     print('Loaded best state')
 else:
     Net.generate_random_seed()
@@ -215,30 +216,31 @@ def run_cma_mp(n_cores=None):
     best_loss = float("inf")
     best_theta = None
 
-    nsamples = 4
+    nsamples = 1
     popsize = n_cores
     while popsize < 32:
          popsize += n_cores
 
     print('Ncores:', n_cores, 'Population size', popsize)
 
-    es = cma.CMAEvolutionStrategy(Net.parameter_set, 0.25, {'verb_disp': 1, 'popsize': popsize})
+    es = cma.CMAEvolutionStrategy(Net.parameter_set, 0.1, {'verb_disp': 1, 'popsize': popsize})
 
     with mp.Pool(processes=n_cores) as pool:
 
         while not es.stop():
 
             #Let's try learning from near the top. See what that comes out with.
-            lower_limit = 0.0
-            angles = np.random.uniform(lower_limit, np.pi+0.1, nsamples)
+            angles = np.random.uniform(0.0*np.pi, np.pi+0.1, nsamples)
+
             angles = angles*np.sign(np.random.uniform(-1,1,nsamples))
 
-            angles = [0.0]
+            angles = [0.5*np.pi]
+
             print('Initial angles:', angles)
             solutions = es.ask()
 
             results = [
-                pool.apply_async(safe_evaluate_theta, (theta,angles, es.sigma))
+                pool.apply_async(safe_evaluate_theta, (theta, angles, es.sigma))
                 for theta in solutions
             ]
 
@@ -277,9 +279,9 @@ def run_cma_mp(n_cores=None):
 
     return
 
-run_cma_mp(n_cores=8)
+#run_cma_mp(n_cores=8)
 
-#evaluate_theta(Net.parameter_set, [np.pi+0.1])
+evaluate_theta(Net.parameter_set, [0.5*np.pi])
 #evaluate_theta(Net.parameter_set)
 
 

@@ -159,6 +159,7 @@ def evaluate_theta(theta, angles):
         # Check for force on wheel - this takes effect at the next timestep
         # Check for actions or stay smash. All needs to be in the same event.get for some reason.
 
+
         if sim.bell.stay_hit > 0:
             sim.bell.stay_angle = 1e6
             fitness = 1e9#fitness*10.0  #Stay break penalty (quite extreme)

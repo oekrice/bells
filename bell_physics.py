@@ -411,8 +411,9 @@ class init_bell:
         else:
             up_backstroke = 0.0
 
-        #return [np.sin(self.bell_angle), np.cos(self.bell_angle), self.velocity*np.sign(self.bell_angle)/10.0, np.abs(self.possible_force), up_handstroke, up_backstroke]
-        return [self.bell_angle, self.velocity*np.sign(self.bell_angle)/10.0]
+        #return [self.velocity/10.0]
+        return [np.sin(self.bell_angle), np.cos(self.bell_angle), self.velocity*np.sign(self.bell_angle)/10.0, np.abs(self.possible_force), up_handstroke, up_backstroke]
+        #return [self.bell_angle, self.velocity*np.sign(self.bell_angle)/10.0]
 
     def establish_rhythm(self, reference_time):
         """Estalishes the desired times for each stroke"""
@@ -549,6 +550,7 @@ class init_bell:
                 up_backstroke = True
             else:
                 up_backstroke = False
+
             force_fraction = 0.0 #How much to care about the force applied at each stroke
             alpha = 2  #Distance factor
             forceness = self.pull**alpha
