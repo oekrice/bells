@@ -63,6 +63,7 @@ def initialise_bell(phy, angle=0.0, velocity = 0.0):
 
     return bell
 
+
 n_nodes = 2
 Net = ForceNet(n_nodes, 2)
 Net.generate_random_seed()
