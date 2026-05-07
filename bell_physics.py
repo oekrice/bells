@@ -131,6 +131,7 @@ class init_bell:
         self.strike_limit = 100
 
         self.current_mode = 'none'   #This is whether it's ringing up, down etc.
+        self.possible_force = 0.0
 
     def timestep(self, phy):
         # Do the timestep here, using only bell.force, which comes either from an input or the machine
@@ -400,7 +401,19 @@ class init_bell:
         pb = self.last_backstroke/10.0     #Time since last stroke
         ph = self.last_handstroke/10.0
 
-        return [self.bell_angle / (np.pi + self.stay_angle), self.velocity / (10.0), bt, ht, self.m_1/1000, pb, ph]
+        if self.bell_angle > np.pi:
+            up_handstroke = (self.bell_angle-np.pi)/self.stay_angle
+        else:
+            up_handstroke = 0.0
+
+        if self.bell_angle < -np.pi:
+            up_backstroke = (-self.bell_angle-np.pi)/self.stay_angle
+        else:
+            up_backstroke = 0.0
+
+        return [np.sin(self.bell_angle), np.cos(self.bell_angle), self.velocity*np.sign(self.bell_angle)/10.0]#, np.abs(self.possible_force), up_handstroke, up_backstroke]
+
+        #return [self.bell_angle / (np.pi + self.stay_angle), self.velocity / (10.0), bt, ht, self.m_1/1000, pb, ph]
 
     def establish_rhythm(self, reference_time):
         """Estalishes the desired times for each stroke"""

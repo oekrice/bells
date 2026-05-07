@@ -65,8 +65,9 @@ def initialise_bell(phy, angle=0.0, velocity = 0.0):
 
     return bell
 
-n_nodes = 2
-Net = ForceNet(n_nodes, 2)
+n_nodes = 6
+n_inputs = 3
+Net = ForceNet(n_nodes, n_inputs)
 Net.generate_random_seed()
 
 #nets = Networks()  #This is the old networks one
@@ -75,7 +76,7 @@ strike_limit = 1.0
 
 max_time = 60.0
 mode = 'up'
-load_best = False
+load_best = True
 extend_net = True
 
 if extend_net:
@@ -129,17 +130,17 @@ def evaluate_theta(theta, angles):
 
             if sim.bell.current_mode == 'up':
                 ring_up = True
-                action = Net.force(inputs[:2])
+                action = Net.force(inputs[:])
                 force = min(1.0, action[0])
 
             if sim.bell.current_mode == 'down':
                 ring_down = True
-                action = Net.force(inputs[:2])
+                action = Net.force(inputs[:])
                 force = min(1.0, action[0])
 
             if sim.bell.current_mode == 'steady':
                 ring_steady = True
-                action = Net.force(inputs[:2])
+                action = Net.force(inputs[:])
                 force = min(1.0, action[0])
 
             sim.bell.pull = force
@@ -223,6 +224,7 @@ def run_cma_mp(n_cores=None):
             Net.update_network(best_theta_local)
 
             #loss = safe_evaluate_theta(best_theta_local, angles, es.sigma)
+
             loss = evaluate_theta(best_theta_local, angles)
 
             Net.save_current_state(mode, loss)
