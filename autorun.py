@@ -33,11 +33,10 @@ import multiprocessing as mp
 if True:
     nest_asyncio.apply()
 
+test_mode = False
 if len(sys.argv) > 1:
-    load_num = int(sys.argv[1])
-else:
-    load_num = -1
-
+    if sys.argv[1] == 'test':
+        test_mode = True
 
 audio_enabled = False
 
@@ -65,10 +64,9 @@ def initialise_bell(phy, angle=0.0, velocity = 0.0):
 
     return bell
 
-n_nodes = 6
-n_inputs = 3
+n_nodes = 4
+n_inputs = 6
 Net = ForceNet(n_nodes, n_inputs)
-Net.generate_random_seed()
 
 #nets = Networks()  #This is the old networks one
 
@@ -76,14 +74,13 @@ strike_limit = 1.0
 
 max_time = 60.0
 mode = 'up'
-load_best = True
-extend_net = True
 
-if extend_net:
-    n_nodes_target = n_nodes
-    print(f'Extending net to {n_nodes_target} nodes')
-    Net.extend_net(n_nodes_target=n_nodes_target)
-    n_nodes = n_nodes_target
+if os.path.exists(f'./nets/{mode}.txt'):
+    load_best = True
+else:
+    load_best = False
+
+extend_net = True
 
 def evaluate_theta(theta, angles):
     global mode
@@ -102,7 +99,9 @@ def evaluate_theta(theta, angles):
         ring_down = False
         ring_steady = False
 
-        Net.update_network(theta)
+        Net_local = ForceNet(n_nodes, n_inputs)
+
+        Net_local.update_network(theta)
 
         sim = run_bell()
 
@@ -126,21 +125,21 @@ def evaluate_theta(theta, angles):
         while sim.phy.time < max_time:
             force = 0.0  # This value between 0 and 1 and then update based on the physics.
 
-            inputs = sim.bell.get_scaled_state()
+            inputs = sim.bell.get_scaled_state()[:n_inputs]
 
             if sim.bell.current_mode == 'up':
                 ring_up = True
-                action = Net.force(inputs[:])
+                action = Net_local.force(inputs)
                 force = min(1.0, action[0])
 
             if sim.bell.current_mode == 'down':
                 ring_down = True
-                action = Net.force(inputs[:])
+                action = Net_local.force(inputs)
                 force = min(1.0, action[0])
 
             if sim.bell.current_mode == 'steady':
                 ring_steady = True
-                action = Net.force(inputs[:])
+                action = Net_local.force(inputs)
                 force = min(1.0, action[0])
 
             sim.bell.pull = force
@@ -152,7 +151,7 @@ def evaluate_theta(theta, angles):
 
         if sim.bell.stay_hit > 0:
             sim.bell.stay_angle = 1e6
-            fitness = fitness + 10.0
+            fitness = 25.0
 
         total_fitness += fitness
 
@@ -161,17 +160,6 @@ def evaluate_theta(theta, angles):
 
     return total_fitness
 
-if load_best:
-    Net.load_best_state(mode, override_nnodes=True)
-    print('Loaded best state')
-else:
-    Net.generate_random_seed()
-    print('Generated random state')
-
-if extend_net:
-    print(f'Extending net to {n_nodes_target} nodes')
-    Net.extend_net(n_nodes_target=n_nodes_target)
-    n_nodes = n_nodes_target
 
 #fitness = evaluate_theta(Net.parameter_set)
 
@@ -192,10 +180,15 @@ def run_cma_mp(n_cores=None):
 
     es = cma.CMAEvolutionStrategy(Net.parameter_set,0.5, {'verb_disp': 1, 'popsize': popsize})
 
-    angles = [np.random.uniform(-0.1, 0.1)]
+    Net_best = ForceNet(n_nodes, n_inputs)
 
     with mp.Pool(processes=n_cores) as pool:
         while not es.stop():
+
+            angles = np.linspace(-np.pi+0.2,np.pi-0.2,11) + np.random.uniform(-0.3,0.3,11)
+
+            print('Sample angle(s):', angles)
+
             solutions = es.ask()
 
             results = [
@@ -221,26 +214,31 @@ def run_cma_mp(n_cores=None):
             #Evaluate from zero to see if it's actually getting any better...
 
             angles = [0.0]
-            Net.update_network(best_theta_local)
+            #Net.update_network(best_theta_local)
 
             #loss = safe_evaluate_theta(best_theta_local, angles, es.sigma)
-
             loss = evaluate_theta(best_theta_local, angles)
 
-            Net.save_current_state(mode, loss)
+            Net_best.update_network(best_theta_local)
+            Net_best.save_current_state(mode, loss)
 
             print('Actual loss for this generation (from completely down):', loss)
-            if loss < best_loss:
-                best_loss = loss
-                best_theta = best_theta_local.copy()
 
             print(es.countiter)
     return
 
-run_cma_mp(n_cores=8)
+if load_best:
+    Net.load_best_state(mode, override_nnodes=extend_net, latest=True)
+    print('Loaded best state')
+else:
+    Net.generate_random_seed()
+    print('Generated random state')
 
-#evaluate_theta(Net.parameter_set)
-#evaluate_theta(Net.parameter_set)
+if not test_mode:
+    run_cma_mp(n_cores=8)
+else:
+    fitness = evaluate_theta(Net.parameter_set, [0.0])
+    print(fitness)
 
 
 

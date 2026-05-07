@@ -411,7 +411,7 @@ class init_bell:
         else:
             up_backstroke = 0.0
 
-        return [np.sin(self.bell_angle), np.cos(self.bell_angle), self.velocity*np.sign(self.bell_angle)/10.0]#, np.abs(self.possible_force), up_handstroke, up_backstroke]
+        return [np.sin(self.bell_angle), np.cos(self.bell_angle), self.velocity*np.sign(self.bell_angle)/10.0, np.abs(self.possible_force), up_handstroke, up_backstroke]
 
         #return [self.bell_angle / (np.pi + self.stay_angle), self.velocity / (10.0), bt, ht, self.m_1/1000, pb, ph]
 
@@ -554,9 +554,13 @@ class init_bell:
             alpha = 2  #Distance factor
             forceness = self.pull**alpha
 
-            if self.bell_angle < 0.0:
+            if self.bell_angle < -np.pi:   #Bell is set at the wrong stroke
+                upness = 2*np.pi**alpha
+            elif self.bell_angle < 0.0:
                 upness = np.pi**alpha
-            else:
+            elif self.bell_angle > np.pi: #Bell is correctly up
+                upness = 0.0
+            else:  #Bell is one the right side, but not up
                 upness = (np.pi - self.bell_angle/np.pi)**alpha
 
             fitness_increment = upness*(1.0 + force_fraction*forceness)
