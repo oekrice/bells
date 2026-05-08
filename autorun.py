@@ -64,7 +64,7 @@ def initialise_bell(phy, angle=0.0, velocity = 0.0):
 
     return bell
 
-n_nodes = 4
+n_nodes = 2
 n_inputs = 6
 Net = ForceNet(n_nodes, n_inputs)
 
@@ -111,7 +111,7 @@ def evaluate_theta(theta, angles):
 
         sim.bell.clapper_angle = np.sign(sim.bell.bell_angle)*sim.bell.clapper_limit + sim.bell.bell_angle
 
-        sim.bell.stay_break_limit = 0.4
+        sim.bell.stay_break_limit = 0.25
 
         sim.bell.velocity = 0.0
 
@@ -185,8 +185,12 @@ def run_cma_mp(n_cores=None):
     with mp.Pool(processes=n_cores) as pool:
         while not es.stop():
 
-            angles = np.linspace(-np.pi+0.2,np.pi-0.2,11) + np.random.uniform(-0.3,0.3,11)
+            n_interiors = 12
+            width = 2*np.pi/n_interiors
+            end_angles = [-np.pi-0.1 + np.random.uniform(-0.025,0.025), np.pi+0.1 + np.random.uniform(-0.025,0.025)]
+            interior_angles = (np.linspace(-np.pi-0.15+width/2,np.pi+0.15-width/2,n_interiors) + np.random.uniform(-width/2,width/2,n_interiors)).tolist()
 
+            angles = end_angles + interior_angles
             print('Sample angle(s):', angles)
 
             solutions = es.ask()

@@ -550,18 +550,18 @@ class init_bell:
                 up_backstroke = True
             else:
                 up_backstroke = False
-            force_fraction = 0.1 #How much to care about the force applied at each stroke
+            force_fraction = 0.0 #How much to care about the force applied at each stroke. Set to zero for now.
             alpha = 2  #Distance factor
             forceness = self.pull**alpha
 
-            if self.bell_angle < -np.pi:   #Bell is set at the wrong stroke
-                upness = 2*np.pi**alpha
+            if self.bell_angle < -np.pi:   #Bell is set at the wrong stroke. Penalise accordingly and try not to sit there.
+                upness = 10.0 - self.bell_angle - np.pi
             elif self.bell_angle < 0.0:
-                upness = np.pi**alpha
+                upness = (np.pi - np.abs(self.bell_angle)/np.pi)**alpha
             elif self.bell_angle > np.pi: #Bell is correctly up
                 upness = 0.0
             else:  #Bell is one the right side, but not up
-                upness = (np.pi - self.bell_angle/np.pi)**alpha
+                upness = (np.pi - np.abs(self.bell_angle)/np.pi)**alpha
 
             fitness_increment = upness*(1.0 + force_fraction*forceness)
 

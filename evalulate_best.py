@@ -73,7 +73,7 @@ def initialise_bell(phy, angle=0.0, velocity = 0.0):
 def evaluate_theta(theta):
     global mode
 
-    angles = np.linspace(-np.pi-0.1, np.pi+0.1, 7)
+    angles = np.linspace(-np.pi-0.1, np.pi+0.1, 15)
     total_fitness = 0.0
 
     for init_angle in angles:
@@ -98,7 +98,7 @@ def evaluate_theta(theta):
 
         sim.bell.clapper_angle = np.sign(sim.bell.bell_angle)*sim.bell.clapper_limit + sim.bell.bell_angle
 
-        sim.bell.stay_break_limit = 0.4
+        sim.bell.stay_break_limit = 0.25
 
         sim.bell.velocity = 0.0
 
@@ -143,7 +143,7 @@ def evaluate_theta(theta):
         total_fitness += fitness
 
         print('Fitness for angle:', init_angle, fitness)
-        plt.plot(sim.bell.bell_angles)
+        plt.plot(sim.bell.bell_angles,linewidth=0.5,c='black')
         #plt.plot(bell.forces)
     plt.show()
 
@@ -165,7 +165,7 @@ else:
 
 #nets = Networks()  #This is the old networks one
 
-if True:
+if False:
     fitness = evaluate_theta(Net.parameter_set)
 
 elif True:
