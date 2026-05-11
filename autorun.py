@@ -64,7 +64,7 @@ def initialise_bell(phy, angle=0.0, velocity = 0.0):
 
     return bell
 
-n_nodes = 2
+n_nodes = 10
 n_inputs = 6
 Net = ForceNet(n_nodes, n_inputs)
 
@@ -72,7 +72,7 @@ Net = ForceNet(n_nodes, n_inputs)
 
 strike_limit = 1.0
 
-max_time = 60.0
+max_time = 15.0
 mode = 'up'
 
 if os.path.exists(f'./nets/{mode}.txt'):
@@ -82,7 +82,9 @@ else:
 
 extend_net = True
 
-def evaluate_theta(theta, angles):
+#Let's have a look at just seeing whether the highest point increases after a couple of swings. Only need 15 seconds or so?
+
+def evaluate_theta(theta, angles, verbose=False):
     global mode
 
     #angles = np.linspace(-np.pi-0.1, np.pi+0.1, 11)
@@ -145,16 +147,22 @@ def evaluate_theta(theta, angles):
             sim.bell.pull = force
             sim.step(force)
 
-            fitness = fitness + sim.bell.fitness_increment(sim.phy)
+            #fitness = fitness + sim.bell.fitness_increment(sim.phy)
 
             sim.phy.count = sim.phy.count + 1
 
-        if sim.bell.stay_hit > 0:
-            sim.bell.stay_angle = 1e6
-            fitness = 25.0
+            if np.abs(sim.bell.bell_angle) > np.pi:
+                break
+
+        fitness = sim.bell.fitness_fn(sim.phy, verbose=verbose)
+
+        # if sim.bell.stay_hit > 0:
+        #     sim.bell.stay_angle = 1e6
+        #     fitness = 1.0
 
         total_fitness += fitness
-
+    total_fitness = total_fitness/len(angles)
+    #print('Total fitness', total_fitness)
     if total_fitness > 1e6:
         total_fitness = 1e12
 
@@ -173,24 +181,33 @@ def run_cma_mp(n_cores=None):
     best_theta = None
 
     popsize = n_cores
-    while popsize < 16:
+    while popsize < 32:
          popsize += n_cores
 
     print('Ncores:', n_cores, 'Population size', popsize)
 
-    es = cma.CMAEvolutionStrategy(Net.parameter_set,0.5, {'verb_disp': 1, 'popsize': popsize})
+    es = cma.CMAEvolutionStrategy(Net.parameter_set, 0.5, {'verb_disp': 1, 'popsize': popsize})
 
     Net_best = ForceNet(n_nodes, n_inputs)
 
     with mp.Pool(processes=n_cores) as pool:
         while not es.stop():
 
-            n_interiors = 12
+            #Set up slightly random distribution of angles
+
+
+            n_interiors = 50
             width = 2*np.pi/n_interiors
             end_angles = [-np.pi-0.1 + np.random.uniform(-0.025,0.025), np.pi+0.1 + np.random.uniform(-0.025,0.025)]
-            interior_angles = (np.linspace(-np.pi-0.15+width/2,np.pi+0.15-width/2,n_interiors) + np.random.uniform(-width/2,width/2,n_interiors)).tolist()
+            interior_angles = np.linspace(-0.9*np.pi, 0.9*np.pi, n_interiors) + np.random.uniform(-0.1,0.1, n_interiors).tolist()
 
-            angles = end_angles + interior_angles
+            #interior_angles = [-np.pi+0.1 + np.random.uniform(-0.025,0.025), np.pi-0.1 + np.random.uniform(-0.025,0.025)]
+            angles =  interior_angles
+
+            #angles = [-np.pi-0.1, np.pi+0.1, 0.0]
+            #angles = [np.random.uniform(-0.1,0.1)]
+            #angles = [0.0]
+
             print('Sample angle(s):', angles)
 
             solutions = es.ask()
@@ -202,10 +219,13 @@ def run_cma_mp(n_cores=None):
 
             losses = []
             for r in results:
-                try:
-                    losses.append(r.get(timeout=10.0))
-                except Exception:
-                    losses.append(1e9)
+                losses.append(r.get())
+
+                # try:
+                #     losses.append(r.get(timeout=n_interiors))
+                # except Exception:
+                #     print('Timeout?')
+                #     losses.append(1e9)
 
             es.tell(solutions, losses)
 
@@ -221,19 +241,26 @@ def run_cma_mp(n_cores=None):
             #Net.update_network(best_theta_local)
 
             #loss = safe_evaluate_theta(best_theta_local, angles, es.sigma)
-            loss = evaluate_theta(best_theta_local, angles)
+            #loss = evaluate_theta(best_theta_local, angles, verbose=True)
 
             Net_best.update_network(best_theta_local)
-            Net_best.save_current_state(mode, loss)
+            Net_best.save_current_state(mode, np.min(losses))
 
-            print('Actual loss for this generation (from completely down):', loss)
+            print('Average loss:', np.mean(losses))
+            print('Worst loss:', np.max(losses))
+            print('Best loss for this generation:', np.min(losses))
 
             print(es.countiter)
     return
 
 if load_best:
-    Net.load_best_state(mode, override_nnodes=extend_net, latest=True)
-    print('Loaded best state')
+    do_latest = True
+    Net.load_best_state(mode, override_nnodes=extend_net, latest=do_latest)
+    print('Loaded set', Net.parameter_set)
+    if do_latest:
+        print('Loaded latest state')
+    else:
+        print('Loaded best state')
 else:
     Net.generate_random_seed()
     print('Generated random state')

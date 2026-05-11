@@ -50,6 +50,12 @@ class ForceNet():
         """
         return 1.0/(1.0 + np.exp(-x))
 
+    def tanh(self, x):
+        """
+        Returns the tanh function of the input x
+        """
+        return (np.exp(x) - np.exp(-x)) / (np.exp(x) + np.exp(-x))
+
     def force(self, inputs):
         """
         For given input arrays, runs the neural net to find the expected output (number between 0 and 1)
@@ -60,9 +66,9 @@ class ForceNet():
         for n in range(self.n_nodes):
             node_activations[n] += np.sum(self.weights_in[:,n]*inputs[:]) + self.biases_in[n]
         node_activations = np.clip(node_activations, a_min = 1e-3, a_max = 1e3)  #Stop over and underflow in the exponentials
-        node_activations = self.sigmoid(node_activations)
+        node_activations = self.tanh(node_activations)
         output = np.sum(node_activations*self.weights_out[:]) + self.biases_out
-        output = self.sigmoid(output)
+        output = self.tanh(output)
 
         return output
 
@@ -80,7 +86,7 @@ class ForceNet():
 
         save_line = [step, minimiser, self.n_inputs, self.n_nodes] + self.parameter_set.tolist()
         with open(fname, "a") as f:
-            f.write(" ".join(f"{x:.6f}" for x in save_line) + "\n")
+            f.write(" ".join(f"{x:.16f}" for x in save_line) + "\n")
         return
 
     def load_best_state(self, mode, override_nnodes=False, latest=False):

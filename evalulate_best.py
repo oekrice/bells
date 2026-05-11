@@ -74,6 +74,7 @@ def evaluate_theta(theta):
     global mode
 
     angles = np.linspace(-np.pi-0.1, np.pi+0.1, 15)
+    #angles = [3.0]
     total_fitness = 0.0
 
     for init_angle in angles:
@@ -132,14 +133,19 @@ def evaluate_theta(theta):
             sim.bell.pull = force
             sim.step(force)
 
-            fitness = fitness + sim.bell.fitness_increment(sim.phy)
+            #fitness = fitness + sim.bell.fitness_increment(sim.phy)
 
             sim.phy.count = sim.phy.count + 1
 
-        if sim.bell.stay_hit > 0:
-            sim.bell.stay_angle = 1e6
-            fitness = 25.0
+            if np.abs(sim.bell.bell_angle) > np.pi:
+                break
 
+        fitness = sim.bell.fitness_fn(sim.phy, verbose=True)
+
+        # if sim.bell.stay_hit > 0:
+        #     sim.bell.stay_angle = 1e6
+        #     fitness = 1.0
+        #
         total_fitness += fitness
 
         print('Fitness for angle:', init_angle, fitness)
@@ -165,8 +171,9 @@ else:
 
 #nets = Networks()  #This is the old networks one
 
-if False:
+if True:
     fitness = evaluate_theta(Net.parameter_set)
+    print(fitness)
 
 elif True:
     #Plot best scores.
