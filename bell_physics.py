@@ -105,7 +105,6 @@ class init_bell:
         self.strike_velocity = 0.0
         self.volume_ref = 0.0
         self.clapper_friction = 0.1 * self.friction
-        self.stay_hit = False
         self.stay_break_limit = 1.0
 
         self.bell_angles = []
@@ -113,6 +112,8 @@ class init_bell:
         self.forces = []
         self.times = [0.0]
         self.stay_hit = 0
+        self.stay_touch = 0
+        self.stay_touch_velocity = 0.0 #The first time the stay is hit
         self.pull = 0.0
 
         self.all_handstrokes = [-10]   #Timing of the respective strokes, in seconds.
@@ -170,12 +171,16 @@ class init_bell:
             if self.bell_angle > np.pi + self.stay_angle:
                 self.velocity = -0.7 * self.velocity
                 self.bell_angle = 2 * np.pi + 2 * self.stay_angle - self.bell_angle
+                self.stay_touch = self.stay_touch + 1
+                self.stay_touch_velocity = abs(self.velocity)
                 if abs(self.velocity) > self.stay_break_limit:
                     self.stay_hit = self.stay_hit + 1
                     self.velocity = -0.5 * self.velocity
             if self.bell_angle < -np.pi - self.stay_angle:
                 self.velocity = -0.7 * self.velocity
                 self.bell_angle = -2 * np.pi - 2 * self.stay_angle - self.bell_angle
+                self.stay_touch = self.stay_touch + 1
+                self.stay_touch_velocity = abs(self.velocity)
 
                 if abs(self.velocity) > self.stay_break_limit:
                     self.stay_hit = self.stay_hit + 1
@@ -220,6 +225,9 @@ class init_bell:
             if self.bell_angle > np.pi + self.stay_angle:
                 self.velocity = -0.7 * self.velocity
                 self.bell_angle = 2 * np.pi + 2 * self.stay_angle - self.bell_angle
+                self.stay_touch = self.stay_touch + 1
+                self.stay_touch_velocity = abs(self.velocity)
+
                 if abs(self.velocity) > self.stay_break_limit:
                     self.stay_hit = self.stay_hit + 1
                     self.velocity = -0.5 * self.velocity
@@ -227,6 +235,9 @@ class init_bell:
             if self.bell_angle < -np.pi - self.stay_angle:
                 self.velocity = -0.7 * self.velocity
                 self.bell_angle = -2 * np.pi - 2 * self.stay_angle - self.bell_angle
+                self.stay_touch = self.stay_touch + 1
+                self.stay_touch_velocity = abs(self.velocity)
+
                 if abs(self.velocity) > self.stay_break_limit:
                     self.stay_hit = self.stay_hit + 1
                     self.velocity = -0.5 * self.velocity
@@ -495,19 +506,38 @@ class init_bell:
                     print('Forceness:', a1)
                     print('Timeliness:', a2)
 
+            #New approach based on incremental improvements
+
 
             peaks, _ = find_peaks(np.abs(self.bell_angles))
             max_angles = np.array(np.abs(self.bell_angles))[peaks]
 
-            if len(peaks) < 2:
-                if np.max(np.abs(self.bell_angles)) > 0.99*np.pi:
-                    return 0.0
-                else:
-                    return 1.0
+            if np.max(np.abs(self.bell_angles)) > 0.99*np.pi:  #Has got sufficiently up. Don't care about oscillations
+                angle_penalty = 0.0
+            elif len(peaks) < 2:
+                angle_penalty = 1.0
             else:
-                return (np.pi - max_angles[-1]) / (np.pi - max_angles[0])
-            #return props[0]*a0 + props[1]*a1 + props[2]*a2
+                angle_penalty =  (np.pi - max_angles[-1]) / (np.pi - max_angles[0])
 
+            if self.bell_angles[0] < -np.pi and self.bell_angles[-1] < -np.pi:
+                angle_penalty = 1.0
+
+            backstroke_time = np.sum(np.array(self.bell_angles) < -np.pi)/len(self.bell_angles)
+            backstroke_penalty = backstroke_time**2 #/(1.0 - backstroke_time)
+
+            handstroke_time = np.sum(np.array(self.bell_angles) > np.pi)/len(self.bell_angles)
+            handstroke_penalty = (1.0 - handstroke_time)**2   #Encourage lingering at handstroke
+
+            if self.stay_touch == 0:  #Never touches the stay, so assume it's fine
+                stay_penalty = 1.0
+            else:
+                stay_hit_fraction = 0.25*self.stay_touch_velocity/self.stay_break_limit
+                stay_penalty = stay_hit_fraction**2
+
+            if verbose:
+                print('Penalties', angle_penalty,  stay_penalty, backstroke_penalty, handstroke_penalty)
+            #return props[0]*a0 + props[1]*a1 + props[2]*a2
+            return angle_penalty + 0.5*(backstroke_penalty + handstroke_penalty) + 0.1*stay_penalty
 
     def fitness_increment(self, phy):
         """Fitness function at a given time rather than evaulating after the fact"""

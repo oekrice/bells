@@ -137,7 +137,7 @@ def evaluate_theta(theta):
 
             sim.phy.count = sim.phy.count + 1
 
-            if np.abs(sim.bell.bell_angle) > np.pi:
+            if sim.bell.stay_touch > 0:
                 break
 
         fitness = sim.bell.fitness_fn(sim.phy, verbose=True)
@@ -148,14 +148,14 @@ def evaluate_theta(theta):
         #
         total_fitness += fitness
 
-        print('Fitness for angle:', init_angle, fitness)
+        #print('Fitness for angle:', init_angle, fitness)
         plt.plot(sim.bell.bell_angles,linewidth=0.5,c='black')
         #plt.plot(bell.forces)
     plt.show()
 
     return fitness
 
-max_time = 60.0
+max_time = 15.0
 mode = 'up'
 load_best = True
 extend_net = True
@@ -171,11 +171,8 @@ else:
 
 #nets = Networks()  #This is the old networks one
 
-if True:
-    fitness = evaluate_theta(Net.parameter_set)
-    print(fitness)
 
-elif True:
+if True:
     #Plot best scores.
     fname = f'./nets/{mode}.txt'
     scores = []; best_scores = []
@@ -197,6 +194,10 @@ elif True:
     plt.xscale('log')
     plt.yscale('log')
     plt.show()
+
+if True:
+    fitness = evaluate_theta(Net.parameter_set)
+    print(fitness)
 
 elif False:
     #Attempt a colourmap?

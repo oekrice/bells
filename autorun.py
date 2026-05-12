@@ -43,27 +43,6 @@ audio_enabled = False
 phy = init_physics()
 phy.do_volume = False
 
-def initialise_bell(phy, angle=0.0, velocity = 0.0):
-
-    bell = init_bell(phy, 0.0)
-
-    bell.bell_angle = angle#0.0#uniform(rmin, rmax)
-    bell.velocity = velocity
-    bell.clapper_angle = np.sign(bell.bell_angle)*bell.clapper_limit + bell.bell_angle
-
-    if np.abs(bell.bell_angle) < 0.5:
-        bell.max_length = 0.0  # max backstroke length
-    else:
-        bell.max_length = bell.radius*(1.0 + 3*np.pi/2 - bell.garter_hole)
-
-    bell.target_period = 5.0
-    bell.stay_break_limit = 1.0
-
-    bell.m_1 = 500   #Bell mass
-    bell.m_2 = 0.05*bell.m_1   #Clapper mass
-
-    return bell
-
 n_nodes = 10
 n_inputs = 6
 Net = ForceNet(n_nodes, n_inputs)
@@ -151,7 +130,7 @@ def evaluate_theta(theta, angles, verbose=False):
 
             sim.phy.count = sim.phy.count + 1
 
-            if np.abs(sim.bell.bell_angle) > np.pi:
+            if sim.bell.stay_touch > 0:
                 break
 
         fitness = sim.bell.fitness_fn(sim.phy, verbose=verbose)
@@ -201,8 +180,10 @@ def run_cma_mp(n_cores=None):
             end_angles = [-np.pi-0.1 + np.random.uniform(-0.025,0.025), np.pi+0.1 + np.random.uniform(-0.025,0.025)]
             interior_angles = np.linspace(-0.9*np.pi, 0.9*np.pi, n_interiors) + np.random.uniform(-0.1,0.1, n_interiors).tolist()
 
+            n_angles = 51
+            angles = np.linspace(-np.pi-0.1,np.pi+0.1,n_angles)
             #interior_angles = [-np.pi+0.1 + np.random.uniform(-0.025,0.025), np.pi-0.1 + np.random.uniform(-0.025,0.025)]
-            angles =  interior_angles
+            #angles =  interior_angles
 
             #angles = [-np.pi-0.1, np.pi+0.1, 0.0]
             #angles = [np.random.uniform(-0.1,0.1)]
@@ -268,8 +249,9 @@ else:
 if not test_mode:
     run_cma_mp(n_cores=8)
 else:
-    fitness = evaluate_theta(Net.parameter_set, [0.0])
-    print(fitness)
+    for angle in np.linspace(-np.pi-0.1, np.pi+0.1, 20):
+        print('Angle:', angle)
+        fitness = evaluate_theta(Net.parameter_set, [angle])
 
 
 
