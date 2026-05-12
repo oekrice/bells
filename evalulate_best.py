@@ -45,40 +45,20 @@ audio_enabled = False
 phy = init_physics()
 phy.do_volume = False
 
-n_nodes = 10
+n_nodes = 20
 n_inputs = 6
-
-def initialise_bell(phy, angle=0.0, velocity = 0.0):
-
-    bell = init_bell(phy, 0.0)
-
-    bell.bell_angle = angle#0.0#uniform(rmin, rmax)
-    bell.velocity = velocity
-    bell.clapper_angle = np.sign(bell.bell_angle)*bell.clapper_limit + bell.bell_angle
-
-    if np.abs(bell.bell_angle) < 0.5:
-        bell.max_length = 0.0  # max backstroke length
-    else:
-        bell.max_length = bell.radius*(1.0 + 3*np.pi/2 - bell.garter_hole)
-
-    bell.target_period = 5.0
-    bell.stay_break_limit = 1.0
-
-    bell.m_1 = 500   #Bell mass
-    bell.m_2 = 0.05*bell.m_1   #Clapper mass
-
-    return bell
 
 
 def evaluate_theta(theta):
     global mode
 
-    end_height = np.pi*0.25
+    end_height = np.pi+0.125
     n_angles = 51
 
     angles = np.linspace(-end_height, end_height, n_angles)
     #angles = [3.0]
     total_fitness = 0.0
+    all_fitnesses = []
 
     for init_angle in angles:
 
@@ -150,23 +130,35 @@ def evaluate_theta(theta):
         #     sim.bell.stay_angle = 1e6
         #     fitness = 1.0
         #
-        total_fitness += fitness
+        #total_fitness += fitness
+        all_fitnesses.append(fitness)
+
 
         #print('Fitness for angle:', init_angle, fitness)
+        c = 'black'
+        if sim.bell.bell_angles[-1] > np.pi and sim.bell.stay_touch_velocity < 0.25:
+            c = 'green'
+        elif sim.bell.bell_angles[-1] > np.pi:
+            c = 'red'
+        elif sim.bell.bell_angles[-1] < -np.pi:
+            c = 'red'
 
         cut = len(sim.bell.bell_angles)
-        plt.plot(sim.bell.times[:cut], sim.bell.bell_angles,linewidth=0.1,c='black')
+        plt.plot(sim.bell.times[:cut], sim.bell.bell_angles,linewidth=0.5,c=c)
         #plt.plot(bell.forces)
     plt.show()
+    alpha = 4
+    all_fitnesses = np.array(all_fitnesses)
+    total_fitness = (np.sum(all_fitnesses**alpha)/len(angles))**(1.0/alpha)
 
-    return fitness
+    return total_fitness
 
 max_time = 10.0
 mode = 'up'
 load_best = True
 extend_net = True
 
-Net = ForceNet(10, 6)
+Net = ForceNet(n_nodes, n_inputs)
 
 if load_best:
     Net.load_best_state(mode, override_nnodes=True, latest=True)
@@ -178,28 +170,32 @@ else:
 #nets = Networks()  #This is the old networks one
 
 
-if True:
-    #Plot best scores.
-    fname = f'./nets/{mode}.txt'
-    scores = []; best_scores = []
-    #Determine the correct number of parameters for this best state
-    if os.path.exists(fname):
-        best_score = 1e6; best_id = 0
-        best_parameters = []
-        with open(fname, "r") as f:
-            data = f.readlines()
-            cut = len(data)
-            for li, line in enumerate(data[-cut:]):
-                if float(line.split(' ')[1]) < best_score:
-                    best_score = float(line.split(' ')[1])
-                    best_id = len(data) - cut + li
-                if float(line.split(' ')[1]) < 100.0:
-                    best_scores.append(best_score)
-                    scores.append(float(line.split(' ')[1]))
-    plt.plot(scores)
-    plt.xscale('log')
-    plt.yscale('log')
-    plt.show()
+if False:
+    while True:
+        #Plot best scores.
+        fname = f'./nets/{mode}.txt'
+        scores = []; best_scores = []
+        #Determine the correct number of parameters for this best state
+        if os.path.exists(fname):
+            best_score = 1e6; best_id = 0
+            best_parameters = []
+            with open(fname, "r") as f:
+                data = f.readlines()
+                cut = len(data)
+                for li, line in enumerate(data[-cut:]):
+                    if float(line.split(' ')[1]) < best_score:
+                        best_score = float(line.split(' ')[1])
+                        best_id = len(data) - cut + li
+                    if float(line.split(' ')[1]) < 100.0:
+                        best_scores.append(best_score)
+                        scores.append(float(line.split(' ')[1]))
+        plt.plot(scores)
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.savefig('./plots/best_score.png')
+        #plt.show()
+        plt.close()
+        time.sleep(5.0)
 
 if True:
     fitness = evaluate_theta(Net.parameter_set)

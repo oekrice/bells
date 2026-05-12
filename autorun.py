@@ -43,7 +43,7 @@ audio_enabled = False
 phy = init_physics()
 phy.do_volume = False
 
-n_nodes = 2
+n_nodes = 20
 n_inputs = 6
 Net = ForceNet(n_nodes, n_inputs)
 
@@ -185,9 +185,10 @@ def run_cma_mp(n_cores=None):
             end_angles = [-np.pi-0.1 + np.random.uniform(-0.025,0.025), np.pi+0.1 + np.random.uniform(-0.025,0.025)]
             interior_angles = np.linspace(-0.9*np.pi, 0.9*np.pi, n_interiors) + np.random.uniform(-0.1,0.1, n_interiors).tolist()
 
-            end_height = np.pi*0.25#np.pi+0.125
+            end_height = np.pi+0.125
             n_angles = 51
             angles = np.linspace(-end_height,end_height,n_angles)
+            angles += np.random.uniform(-0.01,0.01, n_angles)
             #interior_angles = [-np.pi+0.1 + np.random.uniform(-0.025,0.025), np.pi-0.1 + np.random.uniform(-0.025,0.025)]
             #angles =  interior_angles
 

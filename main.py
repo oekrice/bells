@@ -136,11 +136,20 @@ async def main():
         if press_keys[pygame.K_SPACE] or press_mouse[0]:
             force = 1.0
 
+        if bell.effect_force < 0.0:  # Can pull the entire handstroke
+            bell.possible_force = bell.effect_force
+        else:  # Can only pull some of the backstroke
+            if bell.rlength > bell.max_length - bell.backstroke_pull:
+                bell.possible_force = bell.effect_force
+            else:
+                bell.possible_force = 0.0
+
         inputs = bell.get_scaled_state()
 
         if ring_up:
             bell.current_mode = 'up'
-            Net.load_best_state(bell.current_mode, override_nnodes=True, latest=True)
+            if phy.count%60 == 0:
+                Net.load_best_state(bell.current_mode, override_nnodes=True, latest=True)
             action = Net.force(inputs)
             force = min(1.0, force + action[0])
             print('up force', force, action)
