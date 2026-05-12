@@ -83,13 +83,34 @@ dp.import_images(phy, bell)
 # set up the window
 pygame.display.set_caption("Animation")
 
-Net = ForceNet(10, 2)
+Net = ForceNet(10, 6)
 Net.generate_random_seed()
+
+# load_best = True
+# if load_best:
+#     Net.load_best_state(mode, override_nnodes=True, latest=True)
+#     print('Loaded best state')
+# else:
+#     Net.generate_random_seed()
+#     print('Generated random state')
 
 
 refresh_rate = 2
 
 strike_limit = 1.0
+
+
+bell.clapper_angle = np.sign(bell.bell_angle)*bell.clapper_limit + bell.bell_angle
+
+bell.stay_break_limit = 0.25
+
+bell.velocity = 0.0
+
+if np.abs(bell.bell_angle) < 0.5:
+    bell.max_length = 0.0  # max backstroke length
+else:
+    bell.max_length = sbell.radius*(1.0 + 3*np.pi/2 - bell.garter_hole)
+
 
 async def main():
 
@@ -119,19 +140,19 @@ async def main():
 
         if ring_up:
             bell.current_mode = 'up'
-            Net.load_best_state(bell.current_mode)
-            action = nets.force(inputs[:2])
+            Net.load_best_state(bell.current_mode, override_nnodes=True, latest=True)
+            action = Net.force(inputs)
             force = min(1.0, force + action[0])
-
+            print('up force', force, action)
         if ring_down:
             bell.current_mode = 'down'
-            action = nets.force(inputs[:2])
+            action = Net.force(inputs)
             force = min(1.0, force + action[0])
 
         if ring_steady:
 
             bell.current_mode = 'steady'
-            action = nets.force(inputs)
+            action = Net.force(inputs)
             force = min(1.0, force + action[0])
 
         if bell.stay_hit > 0:
@@ -139,11 +160,16 @@ async def main():
 
         if bell.effect_force < 0.0:  # Can pull the entire handstroke
             bell.wheel_force = force * bell.effect_force * wheel_force
+            bell.possible_force = bell.effect_force
+
         else:  # Can only pull some of the backstroke
             if bell.rlength > bell.max_length - bell.backstroke_pull:
                 bell.wheel_force = force * bell.effect_force * wheel_force
+                bell.possible_force = bell.effect_force
+
             else:
                 bell.wheel_force = force * 0.0
+                bell.possible_force = 0.0
 
         bell.pull = force
 

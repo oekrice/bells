@@ -73,12 +73,16 @@ def initialise_bell(phy, angle=0.0, velocity = 0.0):
 def evaluate_theta(theta):
     global mode
 
-    angles = np.linspace(-np.pi-0.1, np.pi+0.1, 15)
+    end_height = np.pi*0.25
+    n_angles = 51
+
+    angles = np.linspace(-end_height, end_height, n_angles)
     #angles = [3.0]
     total_fitness = 0.0
 
     for init_angle in angles:
 
+        print('Init angle', init_angle)
         wheel_force = 600  # Max. force on the rope (in Newtons)
         count = 0
         fitness = 0.0
@@ -149,13 +153,15 @@ def evaluate_theta(theta):
         total_fitness += fitness
 
         #print('Fitness for angle:', init_angle, fitness)
-        plt.plot(sim.bell.bell_angles,linewidth=0.5,c='black')
+
+        cut = len(sim.bell.bell_angles)
+        plt.plot(sim.bell.times[:cut], sim.bell.bell_angles,linewidth=0.1,c='black')
         #plt.plot(bell.forces)
     plt.show()
 
     return fitness
 
-max_time = 15.0
+max_time = 10.0
 mode = 'up'
 load_best = True
 extend_net = True

@@ -43,7 +43,7 @@ audio_enabled = False
 phy = init_physics()
 phy.do_volume = False
 
-n_nodes = 10
+n_nodes = 2
 n_inputs = 6
 Net = ForceNet(n_nodes, n_inputs)
 
@@ -51,7 +51,7 @@ Net = ForceNet(n_nodes, n_inputs)
 
 strike_limit = 1.0
 
-max_time = 15.0
+max_time = 10.0
 mode = 'up'
 
 if os.path.exists(f'./nets/{mode}.txt'):
@@ -69,7 +69,7 @@ def evaluate_theta(theta, angles, verbose=False):
     #angles = np.linspace(-np.pi-0.1, np.pi+0.1, 11)
 
     total_fitness = 0.0
-
+    all_fitnesses = []
     for init_angle in angles:
 
         wheel_force = 600  # Max. force on the rope (in Newtons)
@@ -140,7 +140,12 @@ def evaluate_theta(theta, angles, verbose=False):
         #     fitness = 1.0
 
         total_fitness += fitness
-    total_fitness = total_fitness/len(angles)
+        all_fitnesses.append(fitness)
+
+    alpha = 4
+    all_fitnesses = np.array(all_fitnesses)
+    total_fitness = (np.sum(all_fitnesses**alpha)/len(angles))**(1.0/alpha)
+    #total_fitness = total_fitness/len(angles)
     #print('Total fitness', total_fitness)
     if total_fitness > 1e6:
         total_fitness = 1e12
@@ -180,8 +185,9 @@ def run_cma_mp(n_cores=None):
             end_angles = [-np.pi-0.1 + np.random.uniform(-0.025,0.025), np.pi+0.1 + np.random.uniform(-0.025,0.025)]
             interior_angles = np.linspace(-0.9*np.pi, 0.9*np.pi, n_interiors) + np.random.uniform(-0.1,0.1, n_interiors).tolist()
 
+            end_height = np.pi*0.25#np.pi+0.125
             n_angles = 51
-            angles = np.linspace(-np.pi-0.1,np.pi+0.1,n_angles)
+            angles = np.linspace(-end_height,end_height,n_angles)
             #interior_angles = [-np.pi+0.1 + np.random.uniform(-0.025,0.025), np.pi-0.1 + np.random.uniform(-0.025,0.025)]
             #angles =  interior_angles
 
@@ -251,7 +257,7 @@ if not test_mode:
 else:
     for angle in np.linspace(-np.pi-0.1, np.pi+0.1, 20):
         print('Angle:', angle)
-        fitness = evaluate_theta(Net.parameter_set, [angle])
+        fitness = evaluate_theta(Net.parameter_set, [angle], verbose = True)
 
 
 

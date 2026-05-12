@@ -68,7 +68,7 @@ class ForceNet():
         node_activations = np.clip(node_activations, a_min = 1e-3, a_max = 1e3)  #Stop over and underflow in the exponentials
         node_activations = self.tanh(node_activations)
         output = np.sum(node_activations*self.weights_out[:]) + self.biases_out
-        output = self.tanh(output)
+        output = self.sigmoid(output)
 
         return output
 
