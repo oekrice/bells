@@ -119,8 +119,6 @@ def evaluate_theta(theta):
 
             #fitness = fitness + sim.bell.fitness_increment(sim.phy)
 
-            sim.phy.count = sim.phy.count + 1
-
             if sim.bell.stay_touch > 0:
                 break
 
@@ -133,10 +131,9 @@ def evaluate_theta(theta):
         #total_fitness += fitness
         all_fitnesses.append(fitness)
 
-
         #print('Fitness for angle:', init_angle, fitness)
         c = 'black'
-        if sim.bell.bell_angles[-1] > np.pi and sim.bell.stay_touch_velocity < 0.25:
+        if sim.bell.bell_angles[-1] > np.pi and sim.bell.stay_touch_velocity < 1.0 and sim.bell.stay_touch > 0.0:
             c = 'green'
         elif sim.bell.bell_angles[-1] > np.pi:
             c = 'red'
@@ -153,7 +150,7 @@ def evaluate_theta(theta):
 
     return total_fitness
 
-max_time = 10.0
+max_time = 30.0
 mode = 'up'
 load_best = True
 extend_net = True

@@ -514,7 +514,7 @@ class init_bell:
             # 2: handstroke penalty. Same deal
             # 3: stay penalty. Penalty for whacking the stay. Perhaps need to increase this a bit
 
-            props = [1.0, 0.2, 0.2, 0.5, 1.0, 1.0]
+            props = [1.0, 0.0, 0.0, 1.0, 1.0, 1.0]
             #props = [1.0, 0.0, 0.0,0.0,0.0,0.0]
 
             max_time_cutoff = 20.0
@@ -544,12 +544,15 @@ class init_bell:
             handstroke_time = (np.sum(np.array(self.bell_angles) > np.pi) + tsteps_remaining*at_handstroke)/nsteps_overall
             handstroke_penalty = (1.0 - handstroke_time)**2   #Encourage lingering at handstroke
 
+            min_velocity = 0.25
             if self.stay_touch == 0:  #Never touches the stay, so assume it's fine
                 stay_penalty = 1.0
             else:
-
-                stay_hit_fraction = 0.125*self.stay_touch_velocity/self.stay_break_limit
-                stay_penalty = min(1.0, stay_hit_fraction**2)
+                if self.stay_touch_velocity > min_velocity:
+                    stay_hit_fraction = 0.125*(self.stay_touch_velocity - min_velocity)/self.stay_break_limit
+                    stay_penalty = min(1.0, stay_hit_fraction**2)
+                else:
+                    stay_penalty = 0.0
 
             #Also would like to intoduce a penalty for force while set on the wrong stroke. Hopefully things will coincide and multiply easily.
             #Proportion of time over the balance at which the force is great

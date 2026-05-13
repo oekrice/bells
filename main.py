@@ -22,6 +22,7 @@ import sys
 from bell_physics import init_bell, init_physics
 from display import display_tools
 from nets import ForceNet
+from learn import run_bell
 
 if True:
     nest_asyncio.apply()
@@ -40,8 +41,8 @@ except pygame.error:
     print("Audio disabled")
     audio_enabled = False
 
-phy = init_physics()
-bell = init_bell(phy, 0.0)
+#phy = init_physics()
+#bell = init_bell(phy, 0.0)
 
 runs = 15; runs_per_net = 30
 amin = np.pi * 0.9; amax = np.pi
@@ -51,66 +52,45 @@ rmax = (runs//2+1)*(amax - amin)/(runs_per_net//2) + amin
 if runs%2 == 0:
     rmin = -rmin; rmax = -rmax
 
-bell.bell_angle = 0.0#uniform(rmin, rmax)
-bell.clapper_angle = np.sign(bell.bell_angle)*bell.clapper_limit + bell.bell_angle
+# bell.bell_angle = 0.0#uniform(rmin, rmax)
+# bell.clapper_angle = np.sign(bell.bell_angle)*bell.clapper_limit + bell.bell_angle
+#
+# if np.abs(bell.bell_angle) < 0.5:
+#     bell.max_length = 0.0  # max backstroke length
+# else:
+#     bell.max_length = bell.radius*(1.0 + 3*np.pi/2 - bell.garter_hole)
+#
+#
+# bell.target_period = 5.0
+# bell.stay_break_limit = 1.0
+#
+# bell.m_1 = 500   #Bell mass
+# bell.m_2 = 0.05*bell.m_1   #Clapper mass
+sim = run_bell()
 
-if np.abs(bell.bell_angle) < 0.5:
-    bell.max_length = 0.0  # max backstroke length
-else:
-    bell.max_length = bell.radius*(1.0 + 3*np.pi/2 - bell.garter_hole)
+print('Bell mass', sim.bell.m_1)
 
-
-bell.target_period = 5.0
-bell.stay_break_limit = 1.0
-
-bell.m_1 = 500   #Bell mass
-bell.m_2 = 0.05*bell.m_1   #Clapper mass
-
-print('Bell mass', bell.m_1)
-
-dp = display_tools(phy, bell)
+dp = display_tools(sim.phy, sim.bell)
 
 if audio_enabled:
-    bell.sound = pygame.mixer.Sound("bellsound_deep.wav")
+    sim.bell.sound = pygame.mixer.Sound("bellsound_deep.wav")
 else:
-    bell.sound = None
-    phy.do_volume = False
+    sim.bell.sound = None
+    sim.phy.do_volume = False
 
 # Set up colours
 dp.define_colours()
 # Import images and transform scales
-dp.import_images(phy, bell)
+dp.import_images(sim.phy, sim.bell)
 # set up the window
 pygame.display.set_caption("Animation")
 
-Net = ForceNet(10, 6)
-Net.generate_random_seed()
-
-# load_best = True
-# if load_best:
-#     Net.load_best_state(mode, override_nnodes=True, latest=True)
-#     print('Loaded best state')
-# else:
-#     Net.generate_random_seed()
-#     print('Generated random state')
-
-
+n_inputs = 6
 refresh_rate = 2
+n_nodes = 20
 
-strike_limit = 1.0
-
-
-bell.clapper_angle = np.sign(bell.bell_angle)*bell.clapper_limit + bell.bell_angle
-
-bell.stay_break_limit = 0.25
-
-bell.velocity = 0.0
-
-if np.abs(bell.bell_angle) < 0.5:
-    bell.max_length = 0.0  # max backstroke length
-else:
-    bell.max_length = sbell.radius*(1.0 + 3*np.pi/2 - bell.garter_hole)
-
+Net = ForceNet(n_nodes, n_inputs)
+Net.generate_random_seed()
 
 async def main():
 
@@ -125,6 +105,21 @@ async def main():
     ring_steady = False
     dp.surface.fill(dp.WHITE)
 
+    init_angle = 0.0
+
+    sim.bell.bell_angle = init_angle
+
+    sim.bell.clapper_angle = np.sign(sim.bell.bell_angle)*sim.bell.clapper_limit + sim.bell.bell_angle
+
+    sim.bell.stay_break_limit = 1.0
+
+    sim.bell.velocity = 0.0
+
+    if np.abs(sim.bell.bell_angle) < 0.5:
+        sim.bell.max_length = 0.0  # max backstroke length
+    else:
+        sim.bell.max_length = sim.bell.radius*(1.0 + 3*np.pi/2 - sim.bell.garter_hole)
+
     while True:  # the main game loop
 
         # Check for inputs that affect the timestep
@@ -136,79 +131,50 @@ async def main():
         if press_keys[pygame.K_SPACE] or press_mouse[0]:
             force = 1.0
 
-        if bell.effect_force < 0.0:  # Can pull the entire handstroke
-            bell.possible_force = bell.effect_force
-        else:  # Can only pull some of the backstroke
-            if bell.rlength > bell.max_length - bell.backstroke_pull:
-                bell.possible_force = bell.effect_force
-            else:
-                bell.possible_force = 0.0
+        inputs = sim.bell.get_scaled_state()[:n_inputs]
 
-        inputs = bell.get_scaled_state()
-
-        if ring_up:
-            bell.current_mode = 'up'
-            if phy.count%60 == 0:
-                Net.load_best_state(bell.current_mode, override_nnodes=True, latest=True)
+        if sim.bell.current_mode == 'up':
+            ring_up = True
             action = Net.force(inputs)
-            force = min(1.0, force + action[0])
-            print('up force', force, action)
-        if ring_down:
-            bell.current_mode = 'down'
+            force = min(1.0, action[0] + force)
+
+        if sim.bell.current_mode == 'down':
+            ring_down = True
             action = Net.force(inputs)
-            force = min(1.0, force + action[0])
+            force = min(1.0, action[0] + force)
 
-        if ring_steady:
-
-            bell.current_mode = 'steady'
+        if sim.bell.current_mode == 'steady':
+            ring_steady = True
             action = Net.force(inputs)
-            force = min(1.0, force + action[0])
+            force = min(1.0, action[0] + force)
 
-        if bell.stay_hit > 0:
-            force = 0.0
-
-        if bell.effect_force < 0.0:  # Can pull the entire handstroke
-            bell.wheel_force = force * bell.effect_force * wheel_force
-            bell.possible_force = bell.effect_force
-
-        else:  # Can only pull some of the backstroke
-            if bell.rlength > bell.max_length - bell.backstroke_pull:
-                bell.wheel_force = force * bell.effect_force * wheel_force
-                bell.possible_force = bell.effect_force
-
-            else:
-                bell.wheel_force = force * 0.0
-                bell.possible_force = 0.0
-
-        bell.pull = force
-
-        phy.count = phy.count + 1
+        sim.bell.pull = force
 
         if count % refresh_rate == 0:
 
             dp.surface.fill(dp.WHITE)
 
-            dp.draw_rope(phy, bell)
+            dp.draw_rope(sim.phy, sim.bell)
 
             if count % refresh_rate * 3 == 0:
 
-                dp.display_stroke(phy, bell)  # Displays the text 'handstroke' or 'backstroke'
+                dp.display_stroke(sim.phy, sim.bell)  # Displays the text 'handstroke' or 'backstroke'
 
-                dp.display_state(phy, bell, ring_up, ring_down, ring_steady)
+                dp.display_state(sim.phy, sim.bell, ring_up, ring_down, ring_steady)
 
-                dp.display_force(phy, bell, bell.wheel_force)
+                dp.display_force(sim.phy, sim.bell, sim.bell.wheel_force)
 
-            dp.draw_bell(phy, bell)
+            dp.draw_bell(sim.phy, sim.bell)
 
         # Check for sound
-        if bell.ding == True:
+        if sim.bell.ding == True:
             # if abs(bell.bell_angle) > bell.sound_angle and abs(bell.prev_angle) <= bell.sound_angle:
             if audio_enabled:
-                bell.sound.play()
-                if bell.bell_angle > 0:
-                    print('Back', bell.backstroke_target)
+                sim.bell.sound.play()
+                if sim.bell.bell_angle > 0:
+                    print('Back', sim.bell.backstroke_target)
                 else:
-                    print('Hand', bell.handstroke_target)
+                    print('Hand', sim.bell.handstroke_target)
             # continue
         # Check for force on wheel - this takes effect at the next timestep
 
@@ -222,41 +188,42 @@ async def main():
                     ring_up = not (ring_up)
                     ring_down = False
                     ring_steady = False
-                    if bell.current_mode == 'up':
-                        bell.current_mode = 'none'
+                    if sim.bell.current_mode == 'up':
+                        sim.bell.current_mode = 'none'
                     else:
-                        bell.current_mode = 'up'
+                        sim.bell.current_mode = 'up'
+                        Net.load_best_state('up', override_nnodes=True, latest=True)
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_d:
                     ring_down = not (ring_down)
                     ring_up = False
                     ring_steady = False
-                    if bell.current_mode == 'down':
-                        bell.current_mode = 'none'
+                    if sim.bell.current_mode == 'down':
+                        sim.bell.current_mode = 'none'
                     else:
-                        bell.current_mode = 'down'
+                        sim.bell.current_mode = 'down'
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_s:
                     ring_steady = not (ring_steady)
                     ring_up = False
                     ring_down = False
-                    bell.update_rhythm = True
-                    if bell.current_mode == 'steady':
-                        bell.current_mode = 'none'
+                    sim.bell.update_rhythm = True
+                    if sim.bell.current_mode == 'steady':
+                        sim.bell.current_mode = 'none'
                     else:
-                        bell.current_mode = 'steady'
+                        sim.bell.current_mode = 'steady'
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_z:
-                    bell.target_period = bell.target_period - 0.1
-                    bell.update_rhythm = True
+                    sim.bell.target_period = sim.bell.target_period - 0.1
+                    sim.bell.update_rhythm = True
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_c:
-                    bell.target_period = bell.target_period + 0.1
-                    bell.update_rhythm = True
+                    sim.bell.target_period = sim.bell.target_period + 0.1
+                    sim.bell.update_rhythm = True
 
             if event.type == 1025:
                 if mouse[0] > 40 and mouse[0] < 110 and mouse[1] > 70 and mouse[1] < 90:
@@ -264,6 +231,11 @@ async def main():
                     ring_up = not (ring_up)
                     ring_down = False
                     ring_steady = False
+                    if sim.bell.current_mode == 'up':
+                        sim.bell.current_mode = 'none'
+                    else:
+                        sim.bell.current_mode = 'up'
+                        Net.load_best_state('up', override_nnodes=True, latest=True)
 
             if event.type == 1025:
 
@@ -272,26 +244,31 @@ async def main():
                     ring_down = not (ring_down)
                     ring_up = False
                     ring_steady = False
+                    if sim.bell.current_mode == 'down':
+                        sim.bell.current_mode = 'none'
+                    else:
+                        sim.bell.current_mode = 'down'
 
             if event.type == 1025:
-                if bell.stay_hit > 0:
-                    if mouse[1] > 0.8 * phy.pixels_y:
-                        bell.bell_angle = 0.0
-                        bell.clapper_angle = 0.0
-                        bell.velocity = 0.0
-                        bell.clapper_velocity = 0.0
-                        bell.stay_hit = 0
-                        bell.prev_angle = 0.0
-                        bell.max_length = 0.0  # max backstroke length
-                        bell.stay_angle = 0.15
+                if sim.bell.stay_hit > 0:
+                    if mouse[1] > 0.8 * sim.phy.pixels_y:
+                        sim.bell.bell_angle = 0.0
+                        sim.bell.clapper_angle = 0.0
+                        sim.bell.velocity = 0.0
+                        sim.bell.clapper_velocity = 0.0
+                        sim.bell.stay_hit = 0
+                        sim.bell.prev_angle = 0.0
+                        sim.bell.max_length = 0.0  # max backstroke length
+                        sim.bell.stay_angle = 0.15
 
 
             if event.type == QUIT:
                 pygame.quit()
                 return
 
-        bell.timestep(phy)
-        fitness += bell.fitness_increment(phy)
+        sim.step(force)
+
+                #fitness += bell.fitness_increment(phy)
         '''
         if len(bell.backstroke_accuracy) > 0:
             print(bell.backstroke_accuracy[-1])
@@ -299,18 +276,18 @@ async def main():
             print(bell.handstroke_accuracy[-1])
         '''
 
-        if bell.stay_hit > 0:
-            bell.stay_angle = 1e6
+        if sim.bell.stay_hit > 0:
+            sim.bell.stay_angle = 1e6
 
         if count % refresh_rate == 0:
             pygame.display.update()
-        if count % 60 == 0:
-            #fitness = bell.fitness_fn(phy, print_accuracy = True)
-            print(bell.fitness_increment(phy)*60*60)
-            print('Time', phy.time, 'Angle', bell.bell_angle)
-            #rpint('Fitness', fitness)
-            #print(bell.handstroke_accuracy)
-            #print(bell.backstroke_accuracy)
+        # if count % 60 == 0:
+        #     #fitness = bell.fitness_fn(phy, print_accuracy = True)
+        #     print(bell.fitness_increment(phy)*60*60)
+        #     print('Time', phy.time, 'Angle', bell.bell_angle)
+        #     #rpint('Fitness', fitness)
+        #     #print(bell.handstroke_accuracy)
+        #     #print(bell.backstroke_accuracy)
 
         #'Learn as it goes'
         if count % (60*60) == -1:
@@ -328,7 +305,7 @@ async def main():
 
         count += 1
 
-        fpsClock.tick(phy.FPS)
+        fpsClock.tick(sim.phy.FPS)
 
         await asyncio.sleep(0)
 
