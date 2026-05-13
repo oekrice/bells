@@ -63,14 +63,14 @@ extend_net = True
 
 #Let's have a look at just seeing whether the highest point increases after a couple of swings. Only need 15 seconds or so?
 
-def evaluate_theta(theta, angles, verbose=False):
+def evaluate_theta(theta, angles, bell_masses, verbose=False):
     global mode
 
     #angles = np.linspace(-np.pi-0.1, np.pi+0.1, 11)
 
     total_fitness = 0.0
     all_fitnesses = []
-    for init_angle in angles:
+    for ai, init_angle in enumerate(angles):
 
         wheel_force = 600  # Max. force on the rope (in Newtons)
         count = 0
@@ -95,6 +95,8 @@ def evaluate_theta(theta, angles, verbose=False):
         sim.bell.stay_break_limit = 0.25
 
         sim.bell.velocity = 0.0
+
+        sim.bell.m_1 = bell_masses[ai]
 
         if np.abs(sim.bell.bell_angle) < 0.5:
             sim.bell.max_length = 0.0  # max backstroke length
@@ -179,7 +181,6 @@ def run_cma_mp(n_cores=None):
 
             #Set up slightly random distribution of angles
 
-
             n_interiors = 50
             width = 2*np.pi/n_interiors
             end_angles = [-np.pi-0.1 + np.random.uniform(-0.025,0.025), np.pi+0.1 + np.random.uniform(-0.025,0.025)]
@@ -189,6 +190,8 @@ def run_cma_mp(n_cores=None):
             n_angles = 51
             angles = np.linspace(-end_height,end_height,n_angles)
             angles += np.random.uniform(-0.01,0.01, n_angles)
+
+            #Now going to put some of the randomness in the mass rather than the angles. Can combine both eventually.
             #interior_angles = [-np.pi+0.1 + np.random.uniform(-0.025,0.025), np.pi-0.1 + np.random.uniform(-0.025,0.025)]
             #angles =  interior_angles
 
@@ -196,12 +199,14 @@ def run_cma_mp(n_cores=None):
             #angles = [np.random.uniform(-0.1,0.1)]
             #angles = [0.0]
 
+            bell_masses = np.random.uniform(200,500,len(angles))
+            print('Bell mass:', bell_masses[0])
             print('Sample angle(s):', angles)
 
             solutions = es.ask()
 
             results = [
-                pool.apply_async(evaluate_theta, (theta,angles))
+                pool.apply_async(evaluate_theta, (theta,angles,bell_masses))
                 for theta in solutions
             ]
 
@@ -225,11 +230,11 @@ def run_cma_mp(n_cores=None):
 
             #Evaluate from zero to see if it's actually getting any better...
 
-            angles = [0.0]
+            #angles = [0.0]
             #Net.update_network(best_theta_local)
 
             #loss = safe_evaluate_theta(best_theta_local, angles, es.sigma)
-            #loss = evaluate_theta(best_theta_local, angles, verbose=True)
+            #loss = evaluate_theta(best_theta_local, angles, 600*np.ones(len(angles)), verbose=True)  #Evaluate with the heaviest the bell can be. Should be the worst performance.
 
             Net_best.update_network(best_theta_local)
             Net_best.save_current_state(mode, np.min(losses))
@@ -238,6 +243,7 @@ def run_cma_mp(n_cores=None):
             print('Worst loss:', np.max(losses))
             print('Best loss for this generation:', np.min(losses))
 
+            #print('Loss for m1 = 500:', loss)
             print(es.countiter)
     return
 
@@ -258,7 +264,7 @@ if not test_mode:
 else:
     for angle in np.linspace(-np.pi-0.1, np.pi+0.1, 20):
         print('Angle:', angle)
-        fitness = evaluate_theta(Net.parameter_set, [angle], verbose = True)
+        fitness = evaluate_theta(Net.parameter_set, [angle], [100], verbose = True)
 
 
 

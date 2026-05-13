@@ -60,9 +60,13 @@ def evaluate_theta(theta):
     total_fitness = 0.0
     all_fitnesses = []
 
-    for init_angle in angles:
+    masses = np.linspace(200,500,n_angles)
 
-        print('Init angle', init_angle)
+    for ti in range(len(angles)):
+        init_angle = angles[ti]
+
+
+        print('Init angle and mass', init_angle, masses[ti])
         wheel_force = 600  # Max. force on the rope (in Newtons)
         count = 0
         fitness = 0.0
@@ -86,6 +90,8 @@ def evaluate_theta(theta):
         sim.bell.stay_break_limit = 0.25
 
         sim.bell.velocity = 0.0
+
+        sim.bell.m_1 = 300
 
         if np.abs(sim.bell.bell_angle) < 0.5:
             sim.bell.max_length = 0.0  # max backstroke length
@@ -131,9 +137,10 @@ def evaluate_theta(theta):
         #total_fitness += fitness
         all_fitnesses.append(fitness)
 
+        print('Touch velocity:', sim.bell.stay_touch_velocity)
         #print('Fitness for angle:', init_angle, fitness)
         c = 'black'
-        if sim.bell.bell_angles[-1] > np.pi and sim.bell.stay_touch_velocity < 1.0 and sim.bell.stay_touch > 0.0:
+        if sim.bell.bell_angles[-1] > np.pi and sim.bell.stay_touch_velocity < 0.4 and sim.bell.stay_touch > 0.0:
             c = 'green'
         elif sim.bell.bell_angles[-1] > np.pi:
             c = 'red'

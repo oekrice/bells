@@ -544,7 +544,7 @@ class init_bell:
             handstroke_time = (np.sum(np.array(self.bell_angles) > np.pi) + tsteps_remaining*at_handstroke)/nsteps_overall
             handstroke_penalty = (1.0 - handstroke_time)**2   #Encourage lingering at handstroke
 
-            min_velocity = 0.25
+            min_velocity = 0.4  #This is around the velocity just dropping from on the balance. Which seems to always be pretty much fine...
             if self.stay_touch == 0:  #Never touches the stay, so assume it's fine
                 stay_penalty = 1.0
             else:
@@ -556,14 +556,15 @@ class init_bell:
 
             #Also would like to intoduce a penalty for force while set on the wrong stroke. Hopefully things will coincide and multiply easily.
             #Proportion of time over the balance at which the force is great
-            set_hand = np.where(np.array(self.bell_angles) > np.pi + 0.1)[0]
+            set_hand = np.where(np.array(self.bell_angles) > np.pi + 0.15 - 0.01)[0]
             hand_forces = np.array(self.forces)[set_hand]
+
             if len(hand_forces) > 0:
                 handforce_penalty = np.mean(np.abs(hand_forces)**2)
             else:
                 handforce_penalty = 1.0 #Do want it to be at handstroke at some point
 
-            set_back = np.where(np.array(self.bell_angles) < -np.pi - 0.1)[0]
+            set_back = np.where(np.array(self.bell_angles) < -np.pi - 0.15 + 0.01)[0]
             back_forces = np.array(self.forces)[set_back]
             if len(back_forces) > 0:
                 backforce_penalty = 1.0 - np.mean(np.abs(back_forces)**2)
@@ -571,8 +572,11 @@ class init_bell:
                 backforce_penalty = 0.0 #Do want it to be at handstroke at some point
 
             if verbose:
+                print('Stay hit velocity:', self.stay_touch_velocity)
                 print('Penalties', angle_penalty,  stay_penalty, handstroke_penalty, backstroke_penalty, handforce_penalty, backforce_penalty)
+                print('Total penalty:', (props[0]*angle_penalty + props[1]*backstroke_penalty + props[2]*handstroke_penalty + props[3]*stay_penalty + props[4]*handforce_penalty + props[5]*backforce_penalty)/np.sum(props))
             #return props[0]*a0 + props[1]*a1 + props[2]*a2
+
             return (props[0]*angle_penalty + props[1]*backstroke_penalty + props[2]*handstroke_penalty + props[3]*stay_penalty + props[4]*handforce_penalty + props[5]*backforce_penalty)/np.sum(props)
 
     def fitness_increment(self, phy):
