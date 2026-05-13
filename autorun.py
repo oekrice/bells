@@ -189,7 +189,7 @@ def run_cma_mp(n_cores=None):
             end_height = np.pi+0.125
             n_angles = 51
             angles = np.linspace(-end_height,end_height,n_angles)
-            angles += np.random.uniform(-0.01,0.01, n_angles)
+            #angles += np.random.uniform(-0.01,0.01, n_angles)
 
             #Now going to put some of the randomness in the mass rather than the angles. Can combine both eventually.
             #interior_angles = [-np.pi+0.1 + np.random.uniform(-0.025,0.025), np.pi-0.1 + np.random.uniform(-0.025,0.025)]
@@ -199,7 +199,9 @@ def run_cma_mp(n_cores=None):
             #angles = [np.random.uniform(-0.1,0.1)]
             #angles = [0.0]
 
-            bell_masses = np.random.uniform(200,500,len(angles))
+            #bell_masses = np.random.uniform(200,500,len(angles))
+            bell_masses =  np.random.uniform(400,500)*np.ones(len(angles))  #Should all be able to get up in 30 seconds...
+
             print('Bell mass:', bell_masses[0])
             print('Sample angle(s):', angles)
 

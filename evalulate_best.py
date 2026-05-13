@@ -91,7 +91,7 @@ def evaluate_theta(theta):
 
         sim.bell.velocity = 0.0
 
-        sim.bell.m_1 = 300
+        sim.bell.m_1 = 500
 
         if np.abs(sim.bell.bell_angle) < 0.5:
             sim.bell.max_length = 0.0  # max backstroke length
