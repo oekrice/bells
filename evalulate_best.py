@@ -60,12 +60,12 @@ def evaluate_theta(theta):
     total_fitness = 0.0
     all_fitnesses = []
 
-    masses = np.linspace(200,500,n_angles)
+    masses = np.linspace(250,500,n_angles)
 
     for ti in range(len(angles)):
         init_angle = angles[ti]
 
-
+        init_angle = 0.0
         print('Init angle and mass', init_angle, masses[ti])
         wheel_force = 600  # Max. force on the rope (in Newtons)
         count = 0
@@ -91,7 +91,7 @@ def evaluate_theta(theta):
 
         sim.bell.velocity = 0.0
 
-        sim.bell.m_1 = 500
+        sim.bell.m_1 = masses[ti]
 
         if np.abs(sim.bell.bell_angle) < 0.5:
             sim.bell.max_length = 0.0  # max backstroke length
@@ -157,7 +157,7 @@ def evaluate_theta(theta):
 
     return total_fitness
 
-max_time = 30.0
+max_time = 60.0
 mode = 'up'
 load_best = True
 extend_net = True

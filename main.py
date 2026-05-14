@@ -227,6 +227,19 @@ async def main():
                     sim.bell.target_period = sim.bell.target_period + 0.1
                     sim.bell.update_rhythm = True
 
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_o:
+                    sim.bell.m_1 = sim.bell.m_1 - 10
+                    sim.bell.m_2 = 0.05*sim.bell.m_1
+                    print(f'Bell mass = {sim.bell.m_1}')
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_p:
+                    sim.bell.m_1 = sim.bell.m_1 + 10
+                    sim.bell.m_2 = 0.05*sim.bell.m_1
+                    print(f'Bell mass = {sim.bell.m_1}')
+
+
             if event.type == 1025:
                 if mouse[0] > 40 and mouse[0] < 110 and mouse[1] > 70 and mouse[1] < 90:
                     # left button
