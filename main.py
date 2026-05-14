@@ -85,9 +85,9 @@ dp.import_images(sim.phy, sim.bell)
 # set up the window
 pygame.display.set_caption("Animation")
 
-n_inputs = 6
+n_inputs = 7
 refresh_rate = 2
-n_nodes = 20
+n_nodes = 30
 
 Net = ForceNet(n_nodes, n_inputs)
 Net.generate_random_seed()

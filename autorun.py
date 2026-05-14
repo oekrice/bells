@@ -43,15 +43,15 @@ audio_enabled = False
 phy = init_physics()
 phy.do_volume = False
 
-n_nodes = 20
-n_inputs = 6
+n_nodes = 30
+n_inputs = 7
 Net = ForceNet(n_nodes, n_inputs)
 
 #nets = Networks()  #This is the old networks one
 
 strike_limit = 1.0
 
-max_time = 60.0
+max_time = 40.0
 mode = 'up'
 
 if os.path.exists(f'./nets/{mode}.txt'):
@@ -190,7 +190,7 @@ def run_cma_mp(n_cores=None):
             end_height = np.pi+0.125
             n_angles = 51
             angles = np.linspace(-end_height,end_height,n_angles)
-            angles += np.random.uniform(-0.01,0.01, n_angles)
+            angles += np.random.uniform(-0.05,0.05, n_angles)
 
             #Now going to put some of the randomness in the mass rather than the angles. Can combine both eventually.
             #interior_angles = [-np.pi+0.1 + np.random.uniform(-0.025,0.025), np.pi-0.1 + np.random.uniform(-0.025,0.025)]
@@ -200,9 +200,9 @@ def run_cma_mp(n_cores=None):
             #angles = [np.random.uniform(-0.1,0.1)]
             #angles = [0.0]
 
-            #bell_masses = np.random.uniform(200,500,len(angles))
+            bell_masses = np.random.uniform(200,500,len(angles))
 
-            bell_masses = np.random.choice([400,500], size=len(angles))  #Just do the extremes
+            #bell_masses = np.random.choice([500], size=len(angles))  #Just do the extremes
 
             print('Bell mass range:', np.min(bell_masses), np.max(bell_masses))
             print('Sample angle(s):', angles)
@@ -268,7 +268,7 @@ if not test_mode:
 else:
     for angle in np.linspace(-np.pi-0.1, np.pi+0.1, 20):
         print('Angle:', angle)
-        fitness = evaluate_theta(Net.parameter_set, [angle], [100], verbose = True)
+        fitness = evaluate_theta(Net.parameter_set, [angle], [500], verbose = True)
 
 
 

@@ -65,7 +65,7 @@ class ForceNet():
 
         for n in range(self.n_nodes):
             node_activations[n] += np.sum(self.weights_in[:,n]*inputs[:]) + self.biases_in[n]
-        node_activations = np.clip(node_activations, a_min = 1e-3, a_max = 1e3)  #Stop over and underflow in the exponentials
+        node_activations = np.clip(node_activations, a_min = -1e3, a_max = 1e3)  #Stop over and underflow in the exponentials
         node_activations = self.tanh(node_activations)
         output = np.sum(node_activations*self.weights_out[:]) + self.biases_out
         output = self.sigmoid(output)

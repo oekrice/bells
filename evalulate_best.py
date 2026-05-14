@@ -45,8 +45,8 @@ audio_enabled = False
 phy = init_physics()
 phy.do_volume = False
 
-n_nodes = 20
-n_inputs = 6
+n_nodes = 30
+n_inputs = 7
 
 
 def evaluate_theta(theta):
@@ -172,7 +172,7 @@ else:
     print('Generated random state')
 
 #nets = Networks()  #This is the old networks one
-
+print(Net.parameter_set)
 
 if False:
     while True:
