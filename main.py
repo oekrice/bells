@@ -92,6 +92,20 @@ n_nodes = 30
 Net = ForceNet(n_nodes, n_inputs)
 Net.generate_random_seed()
 
+best_theta_up = None
+if True:
+    mode = 'up'
+    # -  Load the best theta as evaluated by log_best
+    fitness_log = np.loadtxt('./data/fitness_log.txt', delimiter = ',')
+    best_index = np.where(fitness_log[:,3] == np.min(fitness_log[:,3]))[0][0]
+    if best_index is not None:
+        best_theta_up = []
+        with open(f'./nets/{mode}.txt', "r") as f:
+            data = f.readlines()
+
+        for val in data[best_index].split(' ')[4:]:
+            best_theta_up.append(float(val))
+
 async def main():
 
     fpsClock = pygame.time.Clock()
@@ -194,7 +208,8 @@ async def main():
                         sim.bell.current_mode = 'none'
                     else:
                         sim.bell.current_mode = 'up'
-                        Net.load_best_state('up', override_nnodes=True, latest=True)
+                        Net.update_network(best_theta_up)
+                        #Net.load_best_state('up', override_nnodes=True, latest=True)
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_d:
@@ -250,7 +265,8 @@ async def main():
                         sim.bell.current_mode = 'none'
                     else:
                         sim.bell.current_mode = 'up'
-                        Net.load_best_state('up', override_nnodes=True, latest=True)
+                        Net.update_network(best_theta_up)
+                        #Net.load_best_state('up', override_nnodes=True, latest=True)
 
             if event.type == 1025:
 

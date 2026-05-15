@@ -51,7 +51,7 @@ Net = ForceNet(n_nodes, n_inputs)
 
 strike_limit = 1.0
 
-max_time = 40.0
+max_time = 35.0
 mode = 'up'
 
 if os.path.exists(f'./nets/{mode}.txt'):
