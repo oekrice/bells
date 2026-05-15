@@ -514,10 +514,9 @@ class init_bell:
             # 2: handstroke penalty. Same deal
             # 3: stay penalty. Penalty for whacking the stay. Perhaps need to increase this a bit
 
-            props = [1.0, 0.0, 0.0, 1.0, 1.0, 1.0]
             #props = [1.0, 0.0, 0.0,0.0,0.0,0.0]
 
-            max_time_cutoff = 20.0
+            max_time_cutoff = 30.0
 
             peaks, _ = find_peaks(np.abs(self.bell_angles))
             max_angles = np.array(np.abs(self.bell_angles))[peaks]
@@ -554,6 +553,12 @@ class init_bell:
                 else:
                     stay_penalty = 0.0
 
+            if self.stay_touch == 0:
+                stay_penalty = 1.0
+            else:  #Stay is hit. Do a weighted quadratic thing on it.
+                normalised_velocity = self.stay_touch_velocity/min_velocity
+                stay_penalty = normalised_velocity**2/(1 + normalised_velocity**2)  #This maxes out at 1 but gently goes down to zero
+
             #Also would like to intoduce a penalty for force while set on the wrong stroke. Hopefully things will coincide and multiply easily.
             #Proportion of time over the balance at which the force is great
             set_hand = np.where(np.array(self.bell_angles) > np.pi + 0.15 - 0.01)[0]
@@ -571,13 +576,37 @@ class init_bell:
             else:
                 backforce_penalty = 0.0 #Do want it to be at handstroke at some point
 
-            if verbose:
-                print('Stay hit velocity:', self.stay_touch_velocity)
-                print('Penalties', angle_penalty,  stay_penalty, handstroke_penalty, backstroke_penalty, handforce_penalty, backforce_penalty)
-                print('Total penalty:', (props[0]*angle_penalty + props[1]*backstroke_penalty + props[2]*handstroke_penalty + props[3]*stay_penalty + props[4]*handforce_penalty + props[5]*backforce_penalty)/np.sum(props))
-            #return props[0]*a0 + props[1]*a1 + props[2]*a2
+            #New order: Upness, set forces, stay hit, timeliness
 
-            return (props[0]*angle_penalty + props[1]*backstroke_penalty + props[2]*handstroke_penalty + props[3]*stay_penalty + props[4]*handforce_penalty + props[5]*backforce_penalty)/np.sum(props)
+            alpha = 2
+            props = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+            raw_penalties = np.array([angle_penalty, handforce_penalty, backforce_penalty, stay_penalty, handstroke_penalty, backstroke_penalty])
+            inverted_penalties = 1.0/(1.0 + raw_penalties)
+            #print('Inverted penalties (1 good, 0 bad):', inverted_penalties)
+            alpha_factors = np.ones(len(raw_penalties))
+            for i in range(1,len(raw_penalties)):
+                alpha_factors[i] = np.prod(inverted_penalties[:i])**alpha
+
+            #print('Alpha factors:', alpha_factors)
+            total_maximiser = 0
+            for i in range(len(raw_penalties)):
+                 total_maximiser += props[i]*alpha_factors[i]*inverted_penalties[i]
+            #print('Total maximiser:', total_maximiser)
+
+            max_maximiser = np.sum(props)
+
+            if verbose:
+                print('Raw penalties (0 good, 1 bad):', raw_penalties)
+                print('Minimiser:', (max_maximiser - total_maximiser)/max_maximiser)
+            return (max_maximiser - total_maximiser)/max_maximiser #This should do!
+            #Order of penalties matters greatly.
+            # if verbose:
+            #     print('Stay hit velocity:', self.stay_touch_velocity)
+            #     print('Penalties', angle_penalty,  stay_penalty, handstroke_penalty, backstroke_penalty, handforce_penalty, backforce_penalty)
+            #     print('Total penalty:', (props[0]*angle_penalty + props[1]*backstroke_penalty + props[2]*handstroke_penalty + props[3]*stay_penalty + props[4]*handforce_penalty + props[5]*backforce_penalty)/np.sum(props))
+            # #return props[0]*a0 + props[1]*a1 + props[2]*a2
+            #
+            # return (props[0]*angle_penalty + props[1]*backstroke_penalty + props[2]*handstroke_penalty + props[3]*stay_penalty + props[4]*handforce_penalty + props[5]*backforce_penalty)/np.sum(props)
 
     def fitness_increment(self, phy):
         """Fitness function at a given time rather than evaulating after the fact"""

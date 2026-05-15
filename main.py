@@ -93,7 +93,7 @@ Net = ForceNet(n_nodes, n_inputs)
 Net.generate_random_seed()
 
 best_theta_up = None
-if True:
+if False:
     mode = 'up'
     # -  Load the best theta as evaluated by log_best
     fitness_log = np.loadtxt('./data/fitness_log.txt', delimiter = ',')
@@ -208,8 +208,8 @@ async def main():
                         sim.bell.current_mode = 'none'
                     else:
                         sim.bell.current_mode = 'up'
-                        Net.update_network(best_theta_up)
-                        #Net.load_best_state('up', override_nnodes=True, latest=True)
+                        #Net.update_network(best_theta_up)
+                        Net.load_best_state('up', override_nnodes=True, latest=True)
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_d:
@@ -265,8 +265,8 @@ async def main():
                         sim.bell.current_mode = 'none'
                     else:
                         sim.bell.current_mode = 'up'
-                        Net.update_network(best_theta_up)
-                        #Net.load_best_state('up', override_nnodes=True, latest=True)
+                        #Net.update_network(best_theta_up)
+                        Net.load_best_state('up', override_nnodes=True, latest=True)
 
             if event.type == 1025:
 

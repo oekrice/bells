@@ -51,7 +51,7 @@ Net = ForceNet(n_nodes, n_inputs)
 
 strike_limit = 1.0
 
-max_time = 35.0
+max_time = 30.0
 mode = 'up'
 
 if os.path.exists(f'./nets/{mode}.txt'):
@@ -192,6 +192,7 @@ def run_cma_mp(n_cores=None):
             angles = np.linspace(-end_height,end_height,n_angles)
             angles += np.random.uniform(-0.05,0.05, n_angles)
 
+            #angles = [0.0]
             #Now going to put some of the randomness in the mass rather than the angles. Can combine both eventually.
             #interior_angles = [-np.pi+0.1 + np.random.uniform(-0.025,0.025), np.pi-0.1 + np.random.uniform(-0.025,0.025)]
             #angles =  interior_angles
