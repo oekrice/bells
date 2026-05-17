@@ -133,7 +133,7 @@ def evaluate_theta(theta, angles, bell_masses, verbose=False):
 
             sim.phy.count = sim.phy.count + 1
 
-            if sim.bell.stay_touch > 0:
+            if (sim.bell.stay_touch > 0 and sim.bell.bell_angle < np.pi) or sim.bell.stay_hit > 0:
                 break
 
         fitness = sim.bell.fitness_fn(sim.phy, verbose=verbose)

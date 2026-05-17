@@ -87,7 +87,7 @@ def evaluate_theta(theta):
 
         sim.bell.clapper_angle = np.sign(sim.bell.bell_angle)*sim.bell.clapper_limit + sim.bell.bell_angle
 
-        sim.bell.stay_break_limit = 0.25
+        sim.bell.stay_break_limit = 1.0
 
         sim.bell.velocity = 0.0
 
@@ -125,7 +125,7 @@ def evaluate_theta(theta):
 
             #fitness = fitness + sim.bell.fitness_increment(sim.phy)
 
-            if sim.bell.stay_touch > 0:
+            if sim.bell.stay_touch > 0 and sim.bell.bell_angle < np.pi:
                 break
 
         fitness = sim.bell.fitness_fn(sim.phy, verbose=True)
@@ -138,9 +138,10 @@ def evaluate_theta(theta):
         all_fitnesses.append(fitness)
 
         print('Touch velocity:', sim.bell.stay_touch_velocity)
+        print('Stay touches:', sim.bell.stay_touch)
         #print('Fitness for angle:', init_angle, fitness)
         c = 'black'
-        if sim.bell.bell_angles[-1] > np.pi and sim.bell.stay_touch_velocity < 0.4 and sim.bell.stay_touch > 0.0:
+        if sim.bell.bell_angles[-1] > np.pi:#  and sim.bell.stay_touch_velocity < 0.4 and sim.bell.stay_touch > 0.0:
             c = 'green'
         elif sim.bell.bell_angles[-1] > np.pi:
             c = 'red'
@@ -157,9 +158,9 @@ def evaluate_theta(theta):
 
     return total_fitness
 
-max_time = 60.0
+max_time = 30.0
 mode = 'up'
-load_best = False
+load_best = True
 extend_net = True
 
 Net = ForceNet(n_nodes, n_inputs)

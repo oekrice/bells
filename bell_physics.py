@@ -172,7 +172,8 @@ class init_bell:
                 self.velocity = -0.7 * self.velocity
                 self.bell_angle = 2 * np.pi + 2 * self.stay_angle - self.bell_angle
                 self.stay_touch = self.stay_touch + 1
-                self.stay_touch_velocity = abs(self.velocity)
+                if self.stay_touch == 1:
+                    self.stay_touch_velocity = abs(self.velocity)
                 if abs(self.velocity) > self.stay_break_limit:
                     self.stay_hit = self.stay_hit + 1
                     self.velocity = -0.5 * self.velocity
@@ -180,7 +181,8 @@ class init_bell:
                 self.velocity = -0.7 * self.velocity
                 self.bell_angle = -2 * np.pi - 2 * self.stay_angle - self.bell_angle
                 self.stay_touch = self.stay_touch + 1
-                self.stay_touch_velocity = abs(self.velocity)
+                if self.stay_touch == 1:
+                    self.stay_touch_velocity = abs(self.velocity)
 
                 if abs(self.velocity) > self.stay_break_limit:
                     self.stay_hit = self.stay_hit + 1
@@ -226,7 +228,8 @@ class init_bell:
                 self.velocity = -0.7 * self.velocity
                 self.bell_angle = 2 * np.pi + 2 * self.stay_angle - self.bell_angle
                 self.stay_touch = self.stay_touch + 1
-                self.stay_touch_velocity = abs(self.velocity)
+                if self.stay_touch == 1:
+                    self.stay_touch_velocity = abs(self.velocity)
 
                 if abs(self.velocity) > self.stay_break_limit:
                     self.stay_hit = self.stay_hit + 1
@@ -236,7 +239,8 @@ class init_bell:
                 self.velocity = -0.7 * self.velocity
                 self.bell_angle = -2 * np.pi - 2 * self.stay_angle - self.bell_angle
                 self.stay_touch = self.stay_touch + 1
-                self.stay_touch_velocity = abs(self.velocity)
+                if self.stay_touch == 1:
+                    self.stay_touch_velocity = abs(self.velocity)
 
                 if abs(self.velocity) > self.stay_break_limit:
                     self.stay_hit = self.stay_hit + 1
@@ -562,7 +566,14 @@ class init_bell:
             #Also would like to intoduce a penalty for force while set on the wrong stroke. Hopefully things will coincide and multiply easily.
             #Proportion of time over the balance at which the force is great
             set_hand = np.where(np.array(self.bell_angles) > np.pi + 0.15 - 0.01)[0]
-            hand_forces = np.array(self.forces)[set_hand]
+            hand_pull = np.where((np.array(self.bell_angles) > np.pi) & (np.array(self.velocities) < 1e-3))[0]
+
+            # print('a', set_hand)
+            # print('b', hand_pull)
+            hand_pts = list(set_hand) + list(set(hand_pull) - set(set_hand))
+            # print('c', np.array(hand_pts))
+
+            hand_forces = np.array(self.forces)[hand_pts]
 
             if len(hand_forces) > 0:
                 handforce_penalty = np.mean(np.abs(hand_forces)**2)
