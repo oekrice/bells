@@ -43,7 +43,7 @@ audio_enabled = False
 phy = init_physics()
 phy.do_volume = False
 
-n_nodes = 30
+n_nodes = 40
 n_inputs = 7
 Net = ForceNet(n_nodes, n_inputs)
 
