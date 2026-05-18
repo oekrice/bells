@@ -45,7 +45,7 @@ audio_enabled = False
 phy = init_physics()
 phy.do_volume = False
 
-n_nodes = 30
+n_nodes = 40
 n_inputs = 7
 
 

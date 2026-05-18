@@ -87,7 +87,7 @@ pygame.display.set_caption("Animation")
 
 n_inputs = 7
 refresh_rate = 2
-n_nodes = 30
+n_nodes = 40
 
 Net = ForceNet(n_nodes, n_inputs)
 Net.generate_random_seed()
