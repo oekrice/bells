@@ -258,11 +258,11 @@ def run_cma_mp(n_cores=None):
             print('Best loss for this generation:', np.min(losses))
 
             #print('Loss for m1 = 500:', loss)
-            print(es.countiter)
+            print('Count and sigma:', es.countiter, es.sigma)
     return
 
 if load_best:
-    do_latest = True
+    do_latest = False
     Net.load_best_state(mode, override_nnodes=extend_net, latest=do_latest)
     print('Loaded set', Net.parameter_set)
     if do_latest:

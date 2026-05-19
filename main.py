@@ -127,7 +127,7 @@ async def main():
 
     sim.bell.clapper_angle = np.sign(sim.bell.bell_angle)*sim.bell.clapper_limit + sim.bell.bell_angle
 
-    sim.bell.stay_break_limit = 1.0
+    sim.bell.stay_break_limit = 100.0
 
     sim.bell.velocity = 0.0
 

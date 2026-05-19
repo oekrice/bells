@@ -201,7 +201,7 @@ if True:
                         best_scores.append(best_score)
                         scores.append(float(line.split(' ')[1]))
         plt.plot(scores)
-        #plt.xscale('log')
+        plt.xscale('log')
         plt.yscale('log')
         plt.savefig('./plots/best_score.png')
         #plt.show()

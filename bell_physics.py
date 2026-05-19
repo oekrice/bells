@@ -538,11 +538,19 @@ class init_bell:
             else:
                 backforce_penalty = 0.0 #Do want it to be at handstroke at some point
 
+            down_pts = np.where((np.abs(np.array(self.bell_angles)) < 0.05) & (np.abs(np.array(self.velocities)) < 0.05))[0]
+            down_forces = np.array(self.forces)[down_pts]
+
+            if len(down_forces) > 0:
+                downforce_penalty = 1.0 - np.mean(np.abs(down_forces)**2)
+            else:
+                downforce_penalty = 0.0
+
             #New order: Upness, set forces, stay hit, timeliness
 
             alpha = 2
-            props = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-            raw_penalties = np.array([angle_penalty, handforce_penalty, backforce_penalty, stay_penalty, handstroke_penalty, backstroke_penalty])
+            props = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+            raw_penalties = np.array([angle_penalty, downforce_penalty, handforce_penalty, backforce_penalty, stay_penalty, handstroke_penalty, backstroke_penalty])
             inverted_penalties = 1.0/(1.0 + raw_penalties)
             #print('Inverted penalties (1 good, 0 bad):', inverted_penalties)
             alpha_factors = np.ones(len(raw_penalties))

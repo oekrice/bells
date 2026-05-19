@@ -96,7 +96,7 @@ class ForceNet():
                 print('Using bespoke best state')
                 best_score = 1e6; best_id = 0
                 best_parameters = []
-                cut = 10  #Only take the best from the last 250
+                cut = 10  #Only take the best from the last few iterations
                 with open(fname, "r") as f:
                     data = f.readlines()
                     if len(data) > cut:
