@@ -43,7 +43,7 @@ audio_enabled = False
 phy = init_physics()
 phy.do_volume = False
 
-n_nodes = 40
+n_nodes = 10
 n_inputs = 7
 Net = ForceNet(n_nodes, n_inputs)
 
@@ -52,7 +52,7 @@ Net = ForceNet(n_nodes, n_inputs)
 strike_limit = 1.0
 
 max_time = 30.0
-mode = 'up'
+mode = 'up_back'
 
 if os.path.exists(f'./nets/{mode}.txt'):
     load_best = True
@@ -79,6 +79,7 @@ def evaluate_theta(theta, angles, bell_masses, verbose=False):
         ring_up = False
         ring_down = False
         ring_steady = False
+        ring_up_back = False
 
         Net_local = ForceNet(n_nodes, n_inputs)
 
@@ -126,6 +127,12 @@ def evaluate_theta(theta, angles, bell_masses, verbose=False):
                 action = Net_local.force(inputs)
                 force = min(1.0, action[0])
 
+            if sim.bell.current_mode == 'up_back':
+                ring_up_back = True
+                action = Net_local.force(inputs)
+                force = min(1.0, action[0])
+
+
             sim.bell.pull = force
             sim.step(force)
 
@@ -146,6 +153,7 @@ def evaluate_theta(theta, angles, bell_masses, verbose=False):
         all_fitnesses.append(fitness)
 
     alpha = 4
+
     all_fitnesses = np.array(all_fitnesses)
     total_fitness = (np.sum(all_fitnesses**alpha)/len(angles))**(1.0/alpha)
     #total_fitness = total_fitness/len(angles)
@@ -173,7 +181,7 @@ def run_cma_mp(n_cores=None):
 
     print('Ncores:', n_cores, 'Population size', popsize)
 
-    es = cma.CMAEvolutionStrategy(Net.parameter_set, 0.5, {'verb_disp': 1, 'popsize': popsize})
+    es = cma.CMAEvolutionStrategy(Net.parameter_set, 2.5, {'verb_disp': 1, 'popsize': popsize})
 
     Net_best = ForceNet(n_nodes, n_inputs)
 
@@ -187,11 +195,12 @@ def run_cma_mp(n_cores=None):
             end_angles = [-np.pi-0.1 + np.random.uniform(-0.025,0.025), np.pi+0.1 + np.random.uniform(-0.025,0.025)]
             interior_angles = np.linspace(-0.9*np.pi, 0.9*np.pi, n_interiors) + np.random.uniform(-0.1,0.1, n_interiors).tolist()
 
-            end_height = np.pi+0.125
+            end_height = np.pi+0.15
             n_angles = 51
             angles = np.linspace(-end_height,end_height,n_angles)
             angles += np.random.uniform(-0.05,0.05, n_angles)
 
+            angles = np.random.uniform(-end_height, end_height, n_angles)
             #angles = [0.0]
             #Now going to put some of the randomness in the mass rather than the angles. Can combine both eventually.
             #interior_angles = [-np.pi+0.1 + np.random.uniform(-0.025,0.025), np.pi-0.1 + np.random.uniform(-0.025,0.025)]

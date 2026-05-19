@@ -50,13 +50,16 @@ class display_tools:
 
         self.surface.blit(textSurfaceObj, textRectObj)
 
-    def display_state(self, phy, bell, ring_up, ring_down, ring_steady):
+    def display_state(self, phy, bell, ring_up, ring_down, ring_steady, ring_up_back):
         # Display 'handstroke' or 'backstroke'
         fontObj = pygame.font.Font(pygame.font.match_font("arial"), 16)
         if ring_up:
             textSurfaceObj = fontObj.render("Ringing up", True, self.BLACK, self.WHITE)
+        elif ring_up_back:
+            textSurfaceObj = fontObj.render("Ringing up", True, self.BLACK, self.WHITE)
         else:
             textSurfaceObj = fontObj.render("Ring up", True, self.BLACK, self.WHITE)
+
         textRectObj = textSurfaceObj.get_rect()
         textRectObj.center = (0.2 * phy.pixels_x, 0.2 * phy.pixels_y)
         self.surface.blit(textSurfaceObj, textRectObj)

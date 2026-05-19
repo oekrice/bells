@@ -470,46 +470,6 @@ class init_bell:
             """
             As a first test, look at the maximum angle attained? Then minimise that, obviously
             """
-
-            if False:
-                #This seems to work. Need proportions to be well-defined. Let's also try to make 1.0 the maximum no matter what.
-                cut = int(len(self.bell_angles)/4)
-
-                max_angle = np.max(self.bell_angles[-cut:])
-                max_angle = min(np.pi, max_angle)/np.pi
-
-                angle_proportions = np.abs(self.bell_angles)/(np.pi + self.stay_angle)
-
-                mean_angle = 1.0 - np.mean(angle_proportions**2)
-
-                up_time = 0.0
-
-                alpha = 2
-                #Now look at time spent in the region of the balance - this is a decent metric
-                #Time to set the bell
-                for i in range(len(self.bell_angles)):
-                    if self.bell_angles[i] > np.pi-0.05:
-                        up_time += 1
-
-                up_time = up_time/len(self.bell_angles)
-
-                a0 = (1.0 - max_angle)**alpha   #The highest angle attained in the last quarter of the run
-                a1 = np.mean(self.forces)**alpha  #The overall force proportion
-                a2 = (1.0 - up_time)**alpha  #The first time it is up.
-
-                #Change the proportions as appropriate based on the current skill?
-                # if a0 < 0.2: #Bell is basically up. Don't care about the force's local minimum any more.
-                #     a1 = 0.1*a1
-
-                props = [1.0,0.15,0.0]
-                props = props/np.sum(props)
-
-                if verbose:
-                    print('__________________')
-                    print('Upness:', a0)
-                    print('Forceness:', a1)
-                    print('Timeliness:', a2)
-
             #New approach based on incremental improvements
 
             #Things to penalise:
@@ -547,16 +507,7 @@ class init_bell:
             handstroke_time = (np.sum(np.array(self.bell_angles) > np.pi) + tsteps_remaining*at_handstroke)/nsteps_overall
             handstroke_penalty = (1.0 - handstroke_time)**2   #Encourage lingering at handstroke
 
-            min_velocity = 0.4  #This is around the velocity just dropping from on the balance. Which seems to always be pretty much fine...
-            if self.stay_touch == 0:  #Never touches the stay, so assume it's fine
-                stay_penalty = 1.0
-            else:
-                if self.stay_touch_velocity > min_velocity:
-                    stay_hit_fraction = 0.125*(self.stay_touch_velocity - min_velocity)/self.stay_break_limit
-                    stay_penalty = min(1.0, stay_hit_fraction**2)
-                else:
-                    stay_penalty = 0.0
-
+            min_velocity = 0.4
             if self.stay_touch == 0:
                 stay_penalty = 1.0
             else:  #Stay is hit. Do a weighted quadratic thing on it.
@@ -610,14 +561,102 @@ class init_bell:
                 print('Raw penalties (0 good, 1 bad):', raw_penalties)
                 print('Minimiser:', (max_maximiser - total_maximiser)/max_maximiser)
             return (max_maximiser - total_maximiser)/max_maximiser #This should do!
-            #Order of penalties matters greatly.
-            # if verbose:
-            #     print('Stay hit velocity:', self.stay_touch_velocity)
-            #     print('Penalties', angle_penalty,  stay_penalty, handstroke_penalty, backstroke_penalty, handforce_penalty, backforce_penalty)
-            #     print('Total penalty:', (props[0]*angle_penalty + props[1]*backstroke_penalty + props[2]*handstroke_penalty + props[3]*stay_penalty + props[4]*handforce_penalty + props[5]*backforce_penalty)/np.sum(props))
-            # #return props[0]*a0 + props[1]*a1 + props[2]*a2
-            #
-            # return (props[0]*angle_penalty + props[1]*backstroke_penalty + props[2]*handstroke_penalty + props[3]*stay_penalty + props[4]*handforce_penalty + props[5]*backforce_penalty)/np.sum(props)
+
+        elif self.current_mode == 'up_back':
+            max_time_cutoff = 30.0
+
+            peaks, _ = find_peaks(np.abs(self.bell_angles))
+            max_angles = np.array(np.abs(self.bell_angles))[peaks]
+
+            if np.max(np.abs(self.bell_angles)) > 0.99*np.pi:  #Has got sufficiently up. Don't care about oscillations
+                angle_penalty = 0.0
+            elif len(peaks) < 2:
+                angle_penalty = 1.0
+            else:
+                angle_penalty =  ((np.pi - max_angles[-1]) / (np.pi - 0.0))**2#max(0.1, max_angles[0]))
+
+            if self.bell_angles[0] > np.pi and self.bell_angles[-1] > np.pi:
+                angle_penalty = 1.0
+
+            nsteps_overall = int(max_time_cutoff/phy.dt)
+            tsteps_remaining = nsteps_overall - len(self.bell_angles)  #Amount of time left in the simulation
+            at_backstroke = [1.0 if self.bell_angles[-1] < -np.pi else 0.0][0]
+
+            backstroke_time = (np.sum(np.array(self.bell_angles) < -np.pi) + tsteps_remaining*at_backstroke)/nsteps_overall
+            backstroke_penalty = (1.0 - backstroke_time)**2 #/(1.0 - backstroke_time)
+
+            at_handstroke = [1.0 if self.bell_angles[-1] > np.pi else 0.0][0]
+
+            handstroke_time = (np.sum(np.array(self.bell_angles) > np.pi) + tsteps_remaining*at_handstroke)/nsteps_overall
+            handstroke_penalty = handstroke_time**2   #Encourage lingering at handstroke
+
+            min_velocity = 0.4
+
+            if self.stay_touch == 0:
+                stay_penalty = 1.0
+            else:  #Stay is hit. Do a weighted quadratic thing on it.
+                normalised_velocity = self.stay_touch_velocity/min_velocity
+                stay_penalty = normalised_velocity**2/(1 + normalised_velocity**2)  #This maxes out at 1 but gently goes down to zero
+
+            #Also would like to intoduce a penalty for force while set on the wrong stroke. Hopefully things will coincide and multiply easily.
+            #Proportion of time over the balance at which the force is great
+            set_hand = np.where(np.array(self.bell_angles) > np.pi + 0.15 - 0.01)[0]
+            hand_pull = np.where((np.array(self.bell_angles) > np.pi) & (np.array(self.velocities) < 1e-3))[0]
+
+            # print('a', set_hand)
+            # print('b', hand_pull)
+            hand_pts = list(set_hand)# + list(set(hand_pull) - set(set_hand))
+            # print('c', np.array(hand_pts))
+
+            hand_forces = np.array(self.forces)[hand_pts]
+
+            if len(hand_forces) > 0:
+                handforce_penalty = 1.0 - np.mean(np.abs(hand_forces)**2)
+            else:
+                handforce_penalty = 0.0 #Do want it to be at handstroke at some point
+
+            set_back = np.where(np.array(self.bell_angles) < -np.pi - 0.15 + 0.01)[0]
+            back_pull = np.where((np.array(self.bell_angles) < -np.pi) & (np.array(self.velocities) > 1e-3))[0]
+
+            back_pts = list(set_back) + list(set(back_pull) - set(set_back))
+
+            back_forces = np.array(self.forces)[back_pts]
+            if len(back_forces) > 0:
+                backforce_penalty = np.mean(np.abs(back_forces)**2)
+            else:
+                backforce_penalty = 1.0 #Do want it to be at handstroke at some point
+
+            down_pts = np.where((np.abs(np.array(self.bell_angles)) < 0.05) & (np.abs(np.array(self.velocities)) < 0.05))[0]
+            down_forces = np.array(self.forces)[down_pts]
+
+            if len(down_forces) > 0:
+                downforce_penalty = 1.0 - np.mean(np.abs(down_forces)**2)
+            else:
+                downforce_penalty = 0.0
+
+            alpha = 2
+            props = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0,1.0]
+            raw_penalties = np.array([angle_penalty, downforce_penalty, handforce_penalty, backforce_penalty, stay_penalty, handstroke_penalty, backstroke_penalty])
+            inverted_penalties = 1.0/(1.0 + raw_penalties)
+            #print('Inverted penalties (1 good, 0 bad):', inverted_penalties)
+            alpha_factors = np.ones(len(raw_penalties))
+            for i in range(1,len(raw_penalties)):
+                alpha_factors[i] = np.prod(inverted_penalties[:i])**alpha
+
+            #print('Alpha factors:', alpha_factors)
+            total_maximiser = 0
+            for i in range(len(raw_penalties)):
+                 total_maximiser += props[i]*alpha_factors[i]*inverted_penalties[i]
+            #print('Total maximiser:', total_maximiser)
+
+            max_maximiser = np.sum(props)
+
+            if verbose:
+                print('Raw penalties (0 good, 1 bad):', raw_penalties)
+                print('Minimiser:', (max_maximiser - total_maximiser)/max_maximiser)
+
+            return (max_maximiser - total_maximiser)/max_maximiser #This should do!
+
 
     def fitness_increment(self, phy):
         """Fitness function at a given time rather than evaulating after the fact"""

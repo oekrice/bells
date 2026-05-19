@@ -63,13 +63,11 @@ class ForceNet():
         inputs = np.array(inputs)
         node_activations = np.zeros(self.n_nodes)
 
-        for n in range(self.n_nodes):
-            node_activations[n] += np.sum(self.weights_in[:,n]*inputs[:]) + self.biases_in[n]
+        node_activations = np.sum(self.weights_in[:,:]*inputs[:, np.newaxis], axis=0) + self.biases_in[:]
         node_activations = np.clip(node_activations, a_min = -1e3, a_max = 1e3)  #Stop over and underflow in the exponentials
         node_activations = self.tanh(node_activations)
         output = np.sum(node_activations*self.weights_out[:]) + self.biases_out
         output = self.sigmoid(output)
-
         return output
 
     def save_current_state(self, mode, minimiser):
@@ -98,8 +96,12 @@ class ForceNet():
                 print('Using bespoke best state')
                 best_score = 1e6; best_id = 0
                 best_parameters = []
+                cut = 10  #Only take the best from the last 250
                 with open(fname, "r") as f:
                     data = f.readlines()
+                    if len(data) > cut:
+                        data = data[-cut:]
+
                     for li, line in enumerate(data[:]):
                         if float(line.split(' ')[1]) < best_score:
                             best_score = float(line.split(' ')[1])
@@ -129,7 +131,7 @@ class ForceNet():
                 raise Exception('Log file not found...')
         else:
             if os.path.exists(fname):
-                print('Using bespoke best state')
+                print('Using most recent state')
                 best_score = 1e6; best_id = 0
                 best_parameters = []
                 with open(fname, "r") as f:

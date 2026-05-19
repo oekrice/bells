@@ -45,7 +45,7 @@ audio_enabled = False
 phy = init_physics()
 phy.do_volume = False
 
-n_nodes = 40
+n_nodes = 10
 n_inputs = 7
 
 
@@ -74,6 +74,7 @@ def evaluate_theta(theta):
         ring_up = False
         ring_down = False
         ring_steady = False
+        ring_up_back = False
 
         Net_local = ForceNet(n_nodes, n_inputs)
 
@@ -120,6 +121,11 @@ def evaluate_theta(theta):
                 action = Net_local.force(inputs)
                 force = min(1.0, action[0])
 
+            if sim.bell.current_mode == 'up_back':
+                ring_up_back = True
+                action = Net_local.force(inputs)
+                force = min(1.0, action[0])
+
             sim.bell.pull = force
             sim.step(force)
 
@@ -159,7 +165,7 @@ def evaluate_theta(theta):
     return total_fitness
 
 max_time = 30.0
-mode = 'up'
+mode = 'up_back'
 load_best = True
 extend_net = True
 
@@ -175,7 +181,7 @@ else:
 #nets = Networks()  #This is the old networks one
 print(Net.parameter_set)
 
-if False:
+if True:
     while True:
         #Plot best scores.
         fname = f'./nets/{mode}.txt'
@@ -195,12 +201,12 @@ if False:
                         best_scores.append(best_score)
                         scores.append(float(line.split(' ')[1]))
         plt.plot(scores)
-        plt.xscale('log')
+        #plt.xscale('log')
         plt.yscale('log')
         plt.savefig('./plots/best_score.png')
         #plt.show()
         plt.close()
-        time.sleep(5.0)
+        time.sleep(30.0)
 
 if True:
     fitness = evaluate_theta(Net.parameter_set)

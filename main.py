@@ -87,15 +87,15 @@ pygame.display.set_caption("Animation")
 
 n_inputs = 7
 refresh_rate = 2
-n_nodes = 40
+n_nodes = 10
 
 Net = ForceNet(n_nodes, n_inputs)
 Net.generate_random_seed()
 
 best_theta_up = None
+
+mode = 'up_back'
 if False:
-    mode = 'up'
-    # -  Load the best theta as evaluated by log_best
     fitness_log = np.loadtxt('./data/fitness_log.txt', delimiter = ',')
     best_index = np.where(fitness_log[:,3] == np.min(fitness_log[:,3]))[0][0]
     if best_index is not None:
@@ -117,6 +117,8 @@ async def main():
     ring_up = False
     ring_down = False
     ring_steady = False
+    ring_up_back = False
+
     dp.surface.fill(dp.WHITE)
 
     init_angle = 0.0
@@ -164,6 +166,11 @@ async def main():
             action = Net.force(inputs)
             force = min(1.0, action[0] + force)
 
+        if sim.bell.current_mode == 'up_back':
+            ring_up_back = True
+            action = Net.force(inputs)
+            force = min(1.0, action[0] + force)
+
         sim.bell.pull = force
 
         if count % refresh_rate == 0:
@@ -176,7 +183,7 @@ async def main():
 
                 dp.display_stroke(sim.phy, sim.bell)  # Displays the text 'handstroke' or 'backstroke'
 
-                dp.display_state(sim.phy, sim.bell, ring_up, ring_down, ring_steady)
+                dp.display_state(sim.phy, sim.bell, ring_up, ring_down, ring_steady, ring_up_back)
 
                 dp.display_force(sim.phy, sim.bell, sim.bell.wheel_force)
 
@@ -196,6 +203,9 @@ async def main():
 
         mouse = pygame.mouse.get_pos()  # use to activate things
 
+        if True and count%(60*60) == 1:  #Learn as it goes
+            Net.load_best_state(mode, override_nnodes=True, latest=False)
+
         #print(bell.handstroke_targets, bell.backstroke_targets)
         # Check for actions or stay smash. All needs to be in the same event.get for some reason.
         for event in pygame.event.get():
@@ -204,18 +214,21 @@ async def main():
                     ring_up = not (ring_up)
                     ring_down = False
                     ring_steady = False
+                    ring_up_back = False
                     if sim.bell.current_mode == 'up':
                         sim.bell.current_mode = 'none'
                     else:
                         sim.bell.current_mode = 'up'
                         #Net.update_network(best_theta_up)
-                        Net.load_best_state('up', override_nnodes=True, latest=True)
+                        Net.load_best_state('up', override_nnodes=True, latest=False)
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_d:
                     ring_down = not (ring_down)
                     ring_up = False
                     ring_steady = False
+                    ring_up_back = False
+
                     if sim.bell.current_mode == 'down':
                         sim.bell.current_mode = 'none'
                     else:
@@ -226,11 +239,26 @@ async def main():
                     ring_steady = not (ring_steady)
                     ring_up = False
                     ring_down = False
+                    ring_up_back = False
                     sim.bell.update_rhythm = True
                     if sim.bell.current_mode == 'steady':
                         sim.bell.current_mode = 'none'
                     else:
                         sim.bell.current_mode = 'steady'
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_y:
+                    ring_up_back = not (ring_up_back)
+                    ring_up = False
+                    ring_down = False
+                    ring_steady = False
+                    sim.bell.update_rhythm = True
+                    if sim.bell.current_mode == 'up_back':
+                        sim.bell.current_mode = 'none'
+                    else:
+                        sim.bell.current_mode = 'up_back'
+                        Net.load_best_state('up_back', override_nnodes=True, latest=False)
+
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_z:
@@ -266,7 +294,7 @@ async def main():
                     else:
                         sim.bell.current_mode = 'up'
                         #Net.update_network(best_theta_up)
-                        Net.load_best_state('up', override_nnodes=True, latest=True)
+                        Net.load_best_state('up', override_nnodes=True, latest=False)
 
             if event.type == 1025:
 
