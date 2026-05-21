@@ -85,9 +85,9 @@ dp.import_images(sim.phy, sim.bell)
 # set up the window
 pygame.display.set_caption("Animation")
 
-n_inputs = 7
+n_inputs = 9
 refresh_rate = 2
-n_nodes = 10
+n_nodes = 50
 
 Net = ForceNet(n_nodes, n_inputs)
 Net.generate_random_seed()
@@ -137,6 +137,8 @@ async def main():
         sim.bell.max_length = 0.0  # max backstroke length
     else:
         sim.bell.max_length = sim.bell.radius*(1.0 + 3*np.pi/2 - sim.bell.garter_hole)
+
+    Net = ForceNet(50, n_inputs)
 
     while True:  # the main game loop
 
@@ -204,7 +206,7 @@ async def main():
         mouse = pygame.mouse.get_pos()  # use to activate things
 
         if True and count%(60*60) == 1:  #Learn as it goes
-            Net.load_best_state(mode, override_nnodes=True, latest=False)
+            Net.load_best_state(mode, override_nnodes=True, latest=True)
 
         #print(bell.handstroke_targets, bell.backstroke_targets)
         # Check for actions or stay smash. All needs to be in the same event.get for some reason.
@@ -220,6 +222,7 @@ async def main():
                     else:
                         sim.bell.current_mode = 'up'
                         #Net.update_network(best_theta_up)
+                        Net = ForceNet(50, n_inputs)
                         Net.load_best_state('up', override_nnodes=True, latest=False)
 
             if event.type == pygame.KEYDOWN:
@@ -257,6 +260,7 @@ async def main():
                         sim.bell.current_mode = 'none'
                     else:
                         sim.bell.current_mode = 'up_back'
+                        Net = ForceNet(50, n_inputs)
                         Net.load_best_state('up_back', override_nnodes=True, latest=False)
 
 
@@ -294,6 +298,7 @@ async def main():
                     else:
                         sim.bell.current_mode = 'up'
                         #Net.update_network(best_theta_up)
+                        Net = ForceNet(50, n_inputs)
                         Net.load_best_state('up', override_nnodes=True, latest=False)
 
             if event.type == 1025:

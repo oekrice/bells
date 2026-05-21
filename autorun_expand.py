@@ -43,9 +43,6 @@ audio_enabled = False
 phy = init_physics()
 phy.do_volume = False
 
-n_nodes = 2
-n_inputs = 7
-Net = ForceNet(n_nodes, n_inputs)
 
 #nets = Networks()  #This is the old networks one
 
@@ -54,10 +51,6 @@ strike_limit = 1.0
 max_time = 30.0
 mode = 'up_back'
 
-if os.path.exists(f'./nets/{mode}.txt'):
-    load_best = True
-else:
-    load_best = False
 
 extend_net = True
 
@@ -165,12 +158,66 @@ def evaluate_theta(theta, angles, bell_masses, verbose=False):
 
 
 #fitness = evaluate_theta(Net.parameter_set)
+all_sigmas = []
+initial_sigma = 2.5
+terminate_sigma = 1.25
 
-def run_cma_mp(n_cores=None):
+def run_cma_mp(n_nodes, n_inputs, n_cores=None):
     global mode
+    global all_sigmas
+    global initial_sigma
+    global terminate_sigma
     if n_cores is None:
         n_cores = 1
 
+    Net = ForceNet(n_nodes, n_inputs)
+
+    if os.path.exists(f'./nets/{mode}.txt'):
+        load_best = True
+    else:
+        load_best = False
+
+    if load_best:
+        do_latest = False
+        Net.load_best_state(mode, override_nnodes=extend_net, latest=do_latest)
+        print('Loaded set', Net.parameter_set)
+        if do_latest:
+            print('Loaded latest state')
+        else:
+            print('Loaded best state')
+    else:
+        Net.generate_random_seed()
+        print('Generated random state')
+
+    if True:
+        local_sigma_log = np.loadtxt('./nets/sigmas_nnodes.txt', delimiter = ',')
+        max_prev_sigma = np.max(local_sigma_log)
+        initial_sigma = 0.9*max_prev_sigma
+        terminate_sigma = 0.5*max_prev_sigma
+        print('Loaded sigma log. Previous maximum is:', max_prev_sigma)
+        fname = f'./nets/{mode}.txt'
+        #Determine the correct number of parameters for this best state
+        best_score = 1.0
+        if os.path.exists(fname):
+            with open(fname, "r") as f:
+                data = f.readlines()
+                if len(data) > 2:
+                    print('Reading score data...')
+                    cut = min(10, len(data) - 1)
+                    for li, line in enumerate(data[-cut:]):
+                        if float(line.split(' ')[1]) < best_score:
+                            best_score = float(line.split(' ')[1])
+                else:
+                    print('Not enough score data, sticking with 1.0 as threshold')
+                    best_score = 1.0
+        print('Loaded net log. Previous minimum is:', best_score)
+        quality_threshold = best_score
+    else:
+        initial_sigma = 2.5  #This will change with each generation
+        terminate_sigma = 1.25
+        quality_threshold = 1.0
+    #Establish a quality threshold
+    nnodes_sigmas = []
     pool = mp.Pool(processes=n_cores)
     best_loss = float("inf")
     best_theta = None
@@ -179,15 +226,18 @@ def run_cma_mp(n_cores=None):
     while popsize < 32:
          popsize += n_cores
 
-    all_sigmas = []
     print('Ncores:', n_cores, 'Population size', popsize)
 
-    es = cma.CMAEvolutionStrategy(Net.parameter_set, 1.0, {'verb_disp': 1, 'popsize': popsize})
+    print('Running new optimisation with parameters', n_nodes, n_inputs, initial_sigma, terminate_sigma)
+
+    es_go = True
+    es = cma.CMAEvolutionStrategy(Net.parameter_set, initial_sigma, {'verb_disp': 1, 'popsize': popsize})
 
     Net_best = ForceNet(n_nodes, n_inputs)
+    local_losses = []
 
     with mp.Pool(processes=n_cores) as pool:
-        while not es.stop():
+        while not es.stop() and es_go:
 
             #Set up slightly random distribution of angles
 
@@ -198,10 +248,10 @@ def run_cma_mp(n_cores=None):
 
             end_height = np.pi+0.15
             n_angles = 51
-            angles = np.linspace(-end_height,end_height,n_angles)
-            angles += np.random.uniform(-0.05,0.05, n_angles)
+            # angles = np.linspace(-end_height,end_height,n_angles)
+            # angles += np.random.uniform(-0.025,0.025, n_angles)
 
-            angle_ends = np.linspace(-end_height,end_height,n_angles+2)
+            angle_ends = np.linspace(-end_height,end_height,n_angles+1)
             angles = np.random.uniform(angle_ends[:-1], angle_ends[1:])
 
             #angles = [0.0]
@@ -213,7 +263,7 @@ def run_cma_mp(n_cores=None):
             #angles = [np.random.uniform(-0.1,0.1)]
             #angles = [0.0]
 
-            bell_masses = np.random.uniform(200,500,len(angles))
+            bell_masses = np.random.uniform(100,500,len(angles))
 
             #bell_masses = np.random.choice([500], size=len(angles))  #Just do the extremes
 
@@ -256,30 +306,36 @@ def run_cma_mp(n_cores=None):
             Net_best.update_network(best_theta_local)
             Net_best.save_current_state(mode, np.min(losses))
 
+            local_losses.append(np.min(losses))
+
             print('Average loss:', np.mean(losses))
             print('Worst loss:', np.max(losses))
             print('Best loss for this generation:', np.min(losses))
 
             #print('Loss for m1 = 500:', loss)
-            print('Count and sigma:', es.countiter, es.sigma)
+            print(f'Count: {es.countiter}, sigma: {es.sigma}/{terminate_sigma}, nnodes:{n_nodes}, loss:{np.min(local_losses)}/{quality_threshold}:')
             all_sigmas.append(es.sigma)
-            np.savetxt('./nets/sigmas.txt', all_sigmas, delimiter = ',')
+            nnodes_sigmas.append(es.sigma)
+            np.savetxt('./nets/sigmas_all.txt', all_sigmas, delimiter = ',')
+            np.savetxt('./nets/sigmas_nnodes.txt', nnodes_sigmas, delimiter = ',')
+
+            if es.sigma < terminate_sigma and np.min(local_losses) < 1.0*quality_threshold:
+                es_go = False
+
+            terminate_sigma = 0.5*np.max(nnodes_sigmas)
+
     return
 
-if load_best:
-    do_latest = False
-    Net.load_best_state(mode, override_nnodes=extend_net, latest=do_latest)
-    print('Loaded set', Net.parameter_set)
-    if do_latest:
-        print('Loaded latest state')
-    else:
-        print('Loaded best state')
-else:
-    Net.generate_random_seed()
-    print('Generated random state')
 
 if not test_mode:
-    run_cma_mp(n_cores=8)
+    n_nodes = 12
+    n_inputs = 9
+
+    while n_nodes < 50:
+        #Do the entire run
+        run_cma_mp(n_nodes, n_inputs, n_cores=8)
+        n_nodes += 2
+
 else:
     for angle in np.linspace(-np.pi-0.1, np.pi+0.1, 20):
         print('Angle:', angle)

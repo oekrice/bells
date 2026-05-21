@@ -45,8 +45,8 @@ audio_enabled = False
 phy = init_physics()
 phy.do_volume = False
 
-n_nodes = 10
-n_inputs = 7
+n_nodes = 50
+n_inputs = 9
 
 
 def evaluate_theta(theta):
@@ -184,7 +184,10 @@ print(Net.parameter_set)
 if True:
     while True:
         #Plot best scores.
+        fig, axs = plt.subplots(2, figsize = (10,7))
         fname = f'./nets/{mode}.txt'
+        Net.load_best_state(mode, override_nnodes=True, latest=True)
+
         scores = []; best_scores = []
         #Determine the correct number of parameters for this best state
         if os.path.exists(fname):
@@ -200,9 +203,16 @@ if True:
                     if float(line.split(' ')[1]) < 100.0:
                         best_scores.append(best_score)
                         scores.append(float(line.split(' ')[1]))
-        plt.plot(scores)
-        plt.xscale('log')
-        plt.yscale('log')
+        axs[0].plot(scores)
+        axs[0].set_xscale('log')
+        axs[0].set_yscale('log')
+
+        sigmas = np.loadtxt('./nets/sigmas_all.txt', delimiter = ',')
+        axs[1].plot(sigmas)
+        axs[1].set_xscale('log')
+        #axs[1].set_yscale('log')
+
+        plt.tight_layout()
         plt.savefig('./plots/best_score.png')
         #plt.show()
         plt.close()

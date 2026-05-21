@@ -428,7 +428,7 @@ class init_bell:
         else:
             up_backstroke = 0.0
 
-        return [np.sin(self.bell_angle), np.cos(self.bell_angle), self.velocity*np.sign(self.bell_angle)/10.0, np.abs(self.possible_force), up_handstroke, up_backstroke, self.m_1/1000]
+        return [np.sin(self.bell_angle), np.cos(self.bell_angle), self.bell_angle/(np.pi+self.stay_angle), self.velocity*np.sign(self.bell_angle)/10.0, self.velocity, np.abs(self.possible_force), up_handstroke, up_backstroke, self.m_1/1000]
 
         #return [self.bell_angle / (np.pi + self.stay_angle), self.velocity / (10.0), bt, ht, self.m_1/1000, pb, ph]
 
