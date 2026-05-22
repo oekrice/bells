@@ -550,7 +550,7 @@ class init_bell:
 
             alpha = 2
             props = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-            raw_penalties = np.array([angle_penalty, downforce_penalty, handforce_penalty, backforce_penalty, stay_penalty, handstroke_penalty, backstroke_penalty])
+            raw_penalties = np.array([angle_penalty, stay_penalty, downforce_penalty, handforce_penalty, backforce_penalty,  handstroke_penalty, backstroke_penalty])
             inverted_penalties = 1.0/(1.0 + raw_penalties)
             #print('Inverted penalties (1 good, 0 bad):', inverted_penalties)
             alpha_factors = np.ones(len(raw_penalties))

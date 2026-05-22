@@ -228,7 +228,7 @@ async def main():
                         sim.bell.current_mode = 'up'
                         #Net.update_network(best_theta_up)
                         Net = ForceNet(50, n_inputs)
-                        Net.load_best_state('up', override_nnodes=True, latest=False)
+                        Net.load_best_state(sim.bell.current_mode, override_nnodes=True, latest=False)
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_d:

@@ -49,7 +49,7 @@ phy.do_volume = False
 strike_limit = 1.0
 
 max_time = 30.0
-mode = 'up_back'
+mode = 'up'
 
 
 extend_net = True
@@ -332,7 +332,7 @@ def run_cma_mp(n_nodes, n_inputs, n_cores=None):
 
 
 if not test_mode:
-    n_nodes = 10
+    n_nodes = 6
     n_inputs = 9
 
     while n_nodes < 100:
