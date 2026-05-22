@@ -131,7 +131,8 @@ async def main():
 
     sim.bell.velocity = 0.0
 
-    sim.bell.m_1 = 500
+    sim.bell.m_1 = 300
+    sim.bell.m_2 = 0.05*sim.bell.m_1
 
     if np.abs(sim.bell.bell_angle) < 0.5:
         sim.bell.max_length = 0.0  # max backstroke length
@@ -153,6 +154,10 @@ async def main():
 
         inputs = sim.bell.get_scaled_state()[:n_inputs]
 
+        angle = 0.5*(1.0 - np.cos(sim.bell.bell_angle))
+        velocity = sim.bell.velocity
+
+        #print(angle, velocity, angle**2 + velocity**2)
         if sim.bell.current_mode == 'up':
             ring_up = True
             action = Net.force(inputs)

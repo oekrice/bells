@@ -56,7 +56,7 @@ extend_net = True
 
 #Let's have a look at just seeing whether the highest point increases after a couple of swings. Only need 15 seconds or so?
 
-def evaluate_theta(theta, angles, bell_masses, verbose=False):
+def evaluate_theta(theta, angles, bell_masses, velocities, verbose=False):
     global mode
 
     #angles = np.linspace(-np.pi-0.1, np.pi+0.1, 11)
@@ -88,7 +88,7 @@ def evaluate_theta(theta, angles, bell_masses, verbose=False):
 
         sim.bell.stay_break_limit = 0.25
 
-        sim.bell.velocity = 0.0
+        sim.bell.velocity = velocities[ai]
 
         sim.bell.m_1 = bell_masses[ai]
         sim.bell.m_2 = 0.05*sim.bell.m_1
@@ -189,7 +189,7 @@ def run_cma_mp(n_nodes, n_inputs, n_cores=None):
         Net.generate_random_seed()
         print('Generated random state')
 
-    if True:
+    try:
         local_sigma_log = np.loadtxt('./nets/sigmas_nnodes.txt', delimiter = ',')
         max_prev_sigma = np.max(local_sigma_log)
         initial_sigma = 0.9*max_prev_sigma
@@ -212,7 +212,7 @@ def run_cma_mp(n_nodes, n_inputs, n_cores=None):
                     best_score = 1.0
         print('Loaded net log. Previous minimum is:', best_score)
         quality_threshold = best_score
-    else:
+    except:
         initial_sigma = 2.5  #This will change with each generation
         terminate_sigma = 1.25
         quality_threshold = 1.0
@@ -251,9 +251,12 @@ def run_cma_mp(n_nodes, n_inputs, n_cores=None):
             # angles = np.linspace(-end_height,end_height,n_angles)
             # angles += np.random.uniform(-0.025,0.025, n_angles)
 
-            angle_ends = np.linspace(-end_height,end_height,n_angles+1)
-            angles = np.random.uniform(angle_ends[:-1], angle_ends[1:])
 
+            angle_ends = np.linspace(-end_height,end_height,n_angles+1)
+            #angle_ends = np.linspace(0.9*np.pi,np.pi+0.15)
+
+            angles = np.random.uniform(angle_ends[:-1], angle_ends[1:])
+            #angles*= np.random.choice([-1,1], len(angles))
             #angles = [0.0]
             #Now going to put some of the randomness in the mass rather than the angles. Can combine both eventually.
             #interior_angles = [-np.pi+0.1 + np.random.uniform(-0.025,0.025), np.pi-0.1 + np.random.uniform(-0.025,0.025)]
@@ -263,6 +266,7 @@ def run_cma_mp(n_nodes, n_inputs, n_cores=None):
             #angles = [np.random.uniform(-0.1,0.1)]
             #angles = [0.0]
 
+            velocities = np.random.uniform(-1.0,1.0,len(angles))
             bell_masses = np.random.uniform(100,500,len(angles))
 
             #bell_masses = np.random.choice([500], size=len(angles))  #Just do the extremes
@@ -273,7 +277,7 @@ def run_cma_mp(n_nodes, n_inputs, n_cores=None):
             solutions = es.ask()
 
             results = [
-                pool.apply_async(evaluate_theta, (theta,angles,bell_masses))
+                pool.apply_async(evaluate_theta, (theta,angles,bell_masses,velocities))
                 for theta in solutions
             ]
 
@@ -328,16 +332,16 @@ def run_cma_mp(n_nodes, n_inputs, n_cores=None):
 
 
 if not test_mode:
-    n_nodes = 12
+    n_nodes = 10
     n_inputs = 9
 
-    while n_nodes < 50:
+    while n_nodes < 100:
         #Do the entire run
         run_cma_mp(n_nodes, n_inputs, n_cores=8)
         n_nodes += 2
 
 else:
-    for angle in np.linspace(-np.pi-0.1, np.pi+0.1, 20):
+    for angle in np.linspace(-np.pi-0.1, np.pi+0.1, 12):
         print('Angle:', angle)
         fitness = evaluate_theta(Net.parameter_set, [angle], [500], verbose = True)
 
