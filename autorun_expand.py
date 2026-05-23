@@ -332,7 +332,7 @@ def run_cma_mp(n_nodes, n_inputs, n_cores=None):
 
 
 if not test_mode:
-    n_nodes = 6
+    n_nodes = 16
     n_inputs = 9
 
     while n_nodes < 100:
