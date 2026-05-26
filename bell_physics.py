@@ -496,8 +496,11 @@ class init_bell:
             nsteps_overall = int(max_time_cutoff/phy.dt)
             tsteps_remaining = nsteps_overall - len(self.bell_angles)  #Amount of time left in the simulation
 
-            down_time = (np.sum(bell_energies < 0.01))/nsteps_overall
+            down_time = (np.sum(bell_energies < 1e-5))/nsteps_overall
             down_time_penalty = (1.0 - down_time)**2
+
+            end_forces = np.mean(self.forces[-100:])
+            force_penalty = end_forces**2
 
             clapper_energy = np.array(self.clapper_angle)**2 + np.array(self.clapper_velocity)**2
 
@@ -507,8 +510,8 @@ class init_bell:
             #New order: Upness, set forces, stay hit, timeliness
 
             alpha = 2
-            props = [1.0, 1.0, 1.0, 1.0, 1.0]
-            raw_penalties = np.array([angle_penalty, handforce_penalty, backforce_penalty, down_time_penalty, clapper_penalty])
+            props = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+            raw_penalties = np.array([angle_penalty, handforce_penalty, backforce_penalty, down_time_penalty, force_penalty, clapper_penalty])
             inverted_penalties = 1.0/(1.0 + raw_penalties)
             #print('Inverted penalties (1 good, 0 bad):', inverted_penalties)
             alpha_factors = np.ones(len(raw_penalties))

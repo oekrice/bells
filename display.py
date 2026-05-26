@@ -26,6 +26,7 @@ class display_tools:
         self.DARKBROWN = (142, 62, 0)
         self.LIGHTBROWN = (245, 211, 120)
 
+
     def import_images(self, phy, bell):
         self.wheelimg = pygame.image.load("wheel.png")
         self.wheelimg = pygame.transform.scale(self.wheelimg, (2 * bell.radius * phy.xscale, 2 * bell.radius * phy.yscale))
@@ -54,9 +55,9 @@ class display_tools:
         # Display 'handstroke' or 'backstroke'
         fontObj = pygame.font.Font(pygame.font.match_font("arial"), 16)
         if ring_up:
-            textSurfaceObj = fontObj.render("Ringing up (H)", True, self.BLACK, self.WHITE)
+            textSurfaceObj = fontObj.render("Ring up", True, Color("chartreuse4"), self.WHITE)
         elif ring_up_back:
-            textSurfaceObj = fontObj.render("Ringing up (B)", True, self.BLACK, self.WHITE)
+            textSurfaceObj = fontObj.render("Ring up", True, Color("chartreuse4"), self.WHITE)
         else:
             textSurfaceObj = fontObj.render("Ring up", True, self.BLACK, self.WHITE)
 
@@ -65,7 +66,7 @@ class display_tools:
         self.surface.blit(textSurfaceObj, textRectObj)
 
         if ring_down:
-            textSurfaceObj = fontObj.render("Ringing down", True, self.BLACK, self.WHITE)
+            textSurfaceObj = fontObj.render("Ring down", True, Color("chartreuse4"), self.WHITE)
         else:
             textSurfaceObj = fontObj.render("Ring down", True, self.BLACK, self.WHITE)
         textRectObj = textSurfaceObj.get_rect()
@@ -90,6 +91,22 @@ class display_tools:
                 textRectObj.center = (0.5 * phy.pixels_x, 0.1 * phy.pixels_y)
 
                 self.surface.blit(textSurfaceObj, textRectObj)
+
+        current_state = "Manual"
+        if ring_up:
+            current_state = "Standing at Handstroke"
+        elif ring_up_back:
+            current_state = "Standing at Backstroke"
+        elif ring_down:
+            current_state = "Ringing Down"
+
+        textSurfaceObj = fontObj.render(f"Mode: {current_state}", True, self.BLACK, self.WHITE)
+
+        textRectObj = textSurfaceObj.get_rect()
+        textRectObj.center = (0.5 * phy.pixels_x, 0.1 * phy.pixels_y)
+        self.surface.blit(textSurfaceObj, textRectObj)
+
+
 
     def display_force(self, phy, bell, force):
         # Display 'handstroke' or 'backstroke'

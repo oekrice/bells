@@ -210,9 +210,10 @@ async def main():
 
         mouse = pygame.mouse.get_pos()  # use to activate things
 
-        if True and count%(60*60) == 1:  #Learn as it goes
+        if True and count%(60*60) == 1 and sim.bell.current_mode == 'down':  #Learn as it goes
             Net.load_best_state('down' , override_nnodes=True, latest=True)
 
+        #Introduce a check for when the bell is sucessfully up, and stop when it gets there?
         #print(bell.handstroke_targets, bell.backstroke_targets)
         # Check for actions or stay smash. All needs to be in the same event.get for some reason.
         for event in pygame.event.get():
@@ -293,9 +294,8 @@ async def main():
                     sim.bell.m_2 = 0.05*sim.bell.m_1
                     print(f'Bell mass = {sim.bell.m_1}')
 
-
             if event.type == 1025:
-                if mouse[0] > 40 and mouse[0] < 110 and mouse[1] > 70 and mouse[1] < 90:
+                if mouse[0] > 40 and mouse[0] < 75 and mouse[1] > 70 and mouse[1] < 90:
                     # left button
                     ring_up = not (ring_up)
                     ring_down = False
@@ -308,14 +308,29 @@ async def main():
                         Net = ForceNet(50, n_inputs)
                         Net.load_best_state('up', override_nnodes=True, latest=False)
 
+            if event.type == 1025:
+                if mouse[0] > 75 and mouse[0] < 110 and mouse[1] > 70 and mouse[1] < 90:
+                    # left button
+                    ring_up = False
+                    ring_down = False
+                    ring_steady = False
+                    ring_up_back = not (ring_up_back)
+                    if sim.bell.current_mode == 'up_back':
+                        sim.bell.current_mode = 'none'
+                    else:
+                        sim.bell.current_mode = 'up_back'
+                        #Net.update_network(best_theta_up)
+                        Net = ForceNet(50, n_inputs)
+                        Net.load_best_state('up_back', override_nnodes=True, latest=False)
 
             if event.type == 1025:
-
                 if mouse[0] > 270 and mouse[0] < 340 and mouse[1] > 70 and mouse[1] < 90:
                     # left button
                     ring_down = not (ring_down)
                     ring_up = False
                     ring_steady = False
+                    ring_up_back = False
+
                     if sim.bell.current_mode == 'down':
                         sim.bell.current_mode = 'none'
                     else:
@@ -340,6 +355,8 @@ async def main():
             if event.type == QUIT:
                 pygame.quit()
                 return
+
+        #bell_energy = sim.bell.bell_angle**2 + sim.bell.velocity**2
 
         sim.step(force)
 

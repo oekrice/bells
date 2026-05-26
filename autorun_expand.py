@@ -266,7 +266,7 @@ def run_cma_mp(n_nodes, n_inputs, n_cores=None):
             #angles = [np.random.uniform(-0.1,0.1)]
             #angles = [0.0]
 
-            velocities = np.random.uniform(-1.0,1.0,len(angles))
+            velocities = np.random.uniform(-0.0,0.0,len(angles))
             bell_masses = np.random.uniform(100,500,len(angles))
 
             #bell_masses = np.random.choice([500], size=len(angles))  #Just do the extremes
