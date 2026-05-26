@@ -211,7 +211,7 @@ async def main():
         mouse = pygame.mouse.get_pos()  # use to activate things
 
         if True and count%(60*60) == 1:  #Learn as it goes
-            Net.load_best_state(mode, override_nnodes=True, latest=True)
+            Net.load_best_state('down' , override_nnodes=True, latest=True)
 
         #print(bell.handstroke_targets, bell.backstroke_targets)
         # Check for actions or stay smash. All needs to be in the same event.get for some reason.
@@ -228,7 +228,7 @@ async def main():
                         sim.bell.current_mode = 'up'
                         #Net.update_network(best_theta_up)
                         Net = ForceNet(50, n_inputs)
-                        Net.load_best_state(sim.bell.current_mode, override_nnodes=True, latest=False)
+                        Net.load_best_state('up', override_nnodes=True, latest=False)
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_d:
@@ -241,6 +241,8 @@ async def main():
                         sim.bell.current_mode = 'none'
                     else:
                         sim.bell.current_mode = 'down'
+                        Net = ForceNet(50, n_inputs)
+                        Net.load_best_state('down', override_nnodes=True, latest=False)
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_s:
@@ -306,6 +308,7 @@ async def main():
                         Net = ForceNet(50, n_inputs)
                         Net.load_best_state('up', override_nnodes=True, latest=False)
 
+
             if event.type == 1025:
 
                 if mouse[0] > 270 and mouse[0] < 340 and mouse[1] > 70 and mouse[1] < 90:
@@ -317,6 +320,9 @@ async def main():
                         sim.bell.current_mode = 'none'
                     else:
                         sim.bell.current_mode = 'down'
+                        #Net.update_network(best_theta_up)
+                        Net = ForceNet(50, n_inputs)
+                        Net.load_best_state('down', override_nnodes=True, latest=False)
 
             if event.type == 1025:
                 if sim.bell.stay_hit > 0:
@@ -358,17 +364,6 @@ async def main():
         #     #print(bell.handstroke_accuracy)
         #     #print(bell.backstroke_accuracy)
 
-        #'Learn as it goes'
-        if count % (60*60) == -1:
-            # Find current best ringing up
-            if load_num >= 0:
-                os.system("scp ./current_network/%d ./networks/ring_up" % load_num)
-            else:
-                for i in range(10000):
-                    if not os.path.isfile('./current_network/%d' % (i+1)):
-                        break
-
-                os.system("scp ./current_network/%d ./networks/ring_up" % i)
 
             #nets = Networks()
 

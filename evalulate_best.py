@@ -165,7 +165,7 @@ def evaluate_theta(theta):
     return total_fitness
 
 max_time = 30.0
-mode = 'up_back'
+mode = 'down'
 load_best = True
 extend_net = True
 

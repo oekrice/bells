@@ -459,12 +459,74 @@ class init_bell:
 
             final_clapper_angle = (max(0., (max_clapper - np.abs(self.clapper_angle) - np.abs(self.clapper_velocity))/max_clapper)**alpha)
 
-            max_force = 0.1
-            final_force =( max(0., (max_force - np.abs(self.pull))/max_force)**alpha)
-            if print_accuracy:
-                print('Final stats', self.bell_angle, self.velocity, self.clapper_angle + self.clapper_velocity, self.pull)
-                print('Final stats applied', final_angle, final_velocity, final_clapper_angle, final_force)
-            return 0.4*final_angle + 0.4*final_velocity + 0.0*final_clapper_angle + 0.2*final_force
+
+
+            """
+            As a first test, look at the maximum angle attained? Then minimise that, obviously
+            """
+            #New approach based on incremental improvements
+
+            #All the first things need to be minimised. And in order of importance (high to low)
+            max_time_cutoff = 30.0
+
+            bell_energies = np.array(self.bell_angles)**2 + np.array(self.velocities)**2
+
+            angle_penalty = bell_energies[-1]/((np.pi+0.15)**2 + 100)
+
+            set_hand = np.where(np.array(self.bell_angles) > np.pi + 0.15 - 0.01)[0]
+            hand_pull = np.where((np.array(self.bell_angles) > np.pi) & (np.array(self.velocities) < 1e-3))[0]
+
+            hand_pts = list(set_hand) + list(set(hand_pull) - set(set_hand))
+            # print('c', np.array(hand_pts))
+
+            hand_forces = np.array(self.forces)[hand_pts]
+
+            if len(hand_forces) > 0:
+                handforce_penalty = 1.0 - np.mean(np.abs(hand_forces)**2)
+            else:
+                handforce_penalty = 0.0 #Do want it to be at handstroke at some point
+
+            set_back = np.where(np.array(self.bell_angles) < -np.pi - 0.15 + 0.01)[0]
+            back_forces = np.array(self.forces)[set_back]
+            if len(back_forces) > 0:
+                backforce_penalty = 1.0 - np.mean(np.abs(back_forces)**2)
+            else:
+                backforce_penalty = 0.0 #Do want it to be at handstroke at some point
+
+            nsteps_overall = int(max_time_cutoff/phy.dt)
+            tsteps_remaining = nsteps_overall - len(self.bell_angles)  #Amount of time left in the simulation
+
+            down_time = (np.sum(bell_energies < 0.01))/nsteps_overall
+            down_time_penalty = (1.0 - down_time)**2
+
+            clapper_energy = np.array(self.clapper_angle)**2 + np.array(self.clapper_velocity)**2
+
+
+            clapper_penalty = clapper_energy/((np.pi+0.15)**2 + 100)
+
+            #New order: Upness, set forces, stay hit, timeliness
+
+            alpha = 2
+            props = [1.0, 1.0, 1.0, 1.0, 1.0]
+            raw_penalties = np.array([angle_penalty, handforce_penalty, backforce_penalty, down_time_penalty, clapper_penalty])
+            inverted_penalties = 1.0/(1.0 + raw_penalties)
+            #print('Inverted penalties (1 good, 0 bad):', inverted_penalties)
+            alpha_factors = np.ones(len(raw_penalties))
+            for i in range(1,len(raw_penalties)):
+                alpha_factors[i] = np.prod(inverted_penalties[:i])**alpha
+
+            #print('Alpha factors:', alpha_factors)
+            total_maximiser = 0
+            for i in range(len(raw_penalties)):
+                 total_maximiser += props[i]*alpha_factors[i]*inverted_penalties[i]
+            #print('Total maximiser:', total_maximiser)
+
+            max_maximiser = np.sum(props)
+
+            if verbose:
+                print('Raw penalties (0 good, 1 bad):', raw_penalties)
+                print('Minimiser:', (max_maximiser - total_maximiser)/max_maximiser)
+            return (max_maximiser - total_maximiser)/max_maximiser #This should do!
 
         elif self.current_mode == 'up':   #Ringing up overall performance -- time to up plus the force at the end?
             """

@@ -95,7 +95,15 @@ class display_tools:
         # Display 'handstroke' or 'backstroke'
         fontObj = pygame.font.Font(pygame.font.match_font("arial"), 16)
         if bell.stay_hit == 0:
-            textSurfaceObj = fontObj.render(f"Effective Force = {100*(np.abs(force)/600):.0f}%", True, self.BLACK, self.WHITE)
+            force_pc = round(100*(np.abs(force)/600))
+            if force_pc < 10:
+                fstring = f"Effective Force =   {force_pc}%"
+            elif force_pc < 100:
+                fstring = f"Effective Force =  {force_pc}%"
+            else:
+                fstring = f"Effective Force = {force_pc}%"
+
+            textSurfaceObj = fontObj.render(fstring, True, self.BLACK, self.WHITE)
             textRectObj = textSurfaceObj.get_rect()
             textRectObj.center = (0.5 * phy.pixels_x, 0.9 * phy.pixels_y)
             self.surface.blit(textSurfaceObj, textRectObj)

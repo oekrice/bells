@@ -49,7 +49,7 @@ phy.do_volume = False
 strike_limit = 1.0
 
 max_time = 30.0
-mode = 'up'
+mode = 'down'
 
 
 extend_net = True
@@ -332,7 +332,7 @@ def run_cma_mp(n_nodes, n_inputs, n_cores=None):
 
 
 if not test_mode:
-    n_nodes = 16
+    n_nodes = 6
     n_inputs = 9
 
     while n_nodes < 100:
@@ -341,9 +341,13 @@ if not test_mode:
         n_nodes += 2
 
 else:
+    n_nodes = 6
+    n_inputs = 9
+    Net = ForceNet(n_nodes, n_inputs)
+
     for angle in np.linspace(-np.pi-0.1, np.pi+0.1, 12):
         print('Angle:', angle)
-        fitness = evaluate_theta(Net.parameter_set, [angle], [500], verbose = True)
+        fitness = evaluate_theta(Net.parameter_set, [angle], [500], np.array([0]), verbose = True)
 
 
 
