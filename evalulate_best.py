@@ -181,7 +181,7 @@ else:
 #nets = Networks()  #This is the old networks one
 print(Net.parameter_set)
 
-if False:
+if True:
     while True:
         #Plot best scores.
         fig, axs = plt.subplots(2, figsize = (10,7))
@@ -204,8 +204,8 @@ if False:
                         best_scores.append(best_score)
                         scores.append(float(line.split(' ')[1]))
         axs[0].plot(scores)
-        # axs[0].set_xscale('log')
-        # axs[0].set_yscale('log')
+        #axs[0].set_xscale('log')
+        axs[0].set_yscale('log')
 
         sigmas = np.loadtxt('./nets/sigmas_all.txt', delimiter = ',')
         axs[1].plot(sigmas)

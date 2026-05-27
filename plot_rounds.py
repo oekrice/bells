@@ -31,6 +31,9 @@ import os
 import multiprocessing as mp
 import time
 
+import matplotlib
+matplotlib.use('Agg')
+
 if True:
     nest_asyncio.apply()
 
@@ -232,7 +235,7 @@ mode = 'steady'
 load_best = True
 extend_net = True
 Net = ForceNet(n_nodes, n_inputs)
-counter = 0  #Start at this one
+counter = 394  #Start at this one
 
 while True:
     #Want to get this to automatically plot the best one
