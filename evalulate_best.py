@@ -46,7 +46,7 @@ phy = init_physics()
 phy.do_volume = False
 
 n_nodes = 50
-n_inputs = 9
+n_inputs = 13
 
 
 def evaluate_theta(theta):
@@ -165,7 +165,7 @@ def evaluate_theta(theta):
     return total_fitness
 
 max_time = 30.0
-mode = 'down'
+mode = 'steady'
 load_best = True
 extend_net = True
 

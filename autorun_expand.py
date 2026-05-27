@@ -49,14 +49,14 @@ phy.do_volume = False
 strike_limit = 1.0
 
 max_time = 30.0
-mode = 'down'
+mode = 'steady'
 
 
 extend_net = True
 
 #Let's have a look at just seeing whether the highest point increases after a couple of swings. Only need 15 seconds or so?
 
-def evaluate_theta(theta, angles, bell_masses, velocities, verbose=False):
+def evaluate_theta(theta, angles, bell_masses, velocities, target_periods, verbose=False):
     global mode
 
     #angles = np.linspace(-np.pi-0.1, np.pi+0.1, 11)
@@ -92,6 +92,8 @@ def evaluate_theta(theta, angles, bell_masses, velocities, verbose=False):
 
         sim.bell.m_1 = bell_masses[ai]
         sim.bell.m_2 = 0.05*sim.bell.m_1
+
+        sim.bell.target_period = target_periods[ai]
 
         if np.abs(sim.bell.bell_angle) < 0.5:
             sim.bell.max_length = 0.0  # max backstroke length
@@ -216,6 +218,11 @@ def run_cma_mp(n_nodes, n_inputs, n_cores=None):
         initial_sigma = 2.5  #This will change with each generation
         terminate_sigma = 1.25
         quality_threshold = 1.0
+
+    # # -- THIS NEEDS TO BE REMOVED LATER
+    # if n_nodes == 18:
+    #     quality_threshold = 1.0
+
     #Establish a quality threshold
     nnodes_sigmas = []
     pool = mp.Pool(processes=n_cores)
@@ -266,9 +273,18 @@ def run_cma_mp(n_nodes, n_inputs, n_cores=None):
             #angles = [np.random.uniform(-0.1,0.1)]
             #angles = [0.0]
 
+            if False: #For down training
+                velocities = np.random.uniform(-0.0,0.0,len(angles))
+                bell_masses = np.random.uniform(100,500,len(angles))
+
+            #Below for steady training:
+            angles = np.random.uniform(np.pi*0.75,np.pi+0.1, n_angles)
+            angles*= np.random.choice([-1,1], len(angles))
+            angles += np.random.uniform(-0.025,0.025, n_angles)
+
             velocities = np.random.uniform(-0.0,0.0,len(angles))
             bell_masses = np.random.uniform(100,500,len(angles))
-
+            target_periods = np.random.uniform(3.0,6.0,len(angles))
             #bell_masses = np.random.choice([500], size=len(angles))  #Just do the extremes
 
             print('Bell mass range:', np.min(bell_masses), np.max(bell_masses))
@@ -277,7 +293,7 @@ def run_cma_mp(n_nodes, n_inputs, n_cores=None):
             solutions = es.ask()
 
             results = [
-                pool.apply_async(evaluate_theta, (theta,angles,bell_masses,velocities))
+                pool.apply_async(evaluate_theta, (theta,angles,bell_masses,velocities,target_periods))
                 for theta in solutions
             ]
 
@@ -333,7 +349,7 @@ def run_cma_mp(n_nodes, n_inputs, n_cores=None):
 
 if not test_mode:
     n_nodes = 6
-    n_inputs = 9
+    n_inputs = 13
 
     while n_nodes < 100:
         #Do the entire run
@@ -341,13 +357,15 @@ if not test_mode:
         n_nodes += 2
 
 else:
+    max_time = 60.0
     n_nodes = 6
-    n_inputs = 9
+    n_inputs = 13
     Net = ForceNet(n_nodes, n_inputs)
+    Net.load_best_state(mode, override_nnodes=extend_net, latest=True)
 
-    for angle in np.linspace(-np.pi-0.1, np.pi+0.1, 12):
+    for angle in np.linspace(np.pi-0.2, np.pi-0.1, 12):
         print('Angle:', angle)
-        fitness = evaluate_theta(Net.parameter_set, [angle], [500], np.array([0]), verbose = True)
+        fitness = evaluate_theta(Net.parameter_set, [angle], [500], np.array([0]), [4.0], verbose = True)
 
 
 

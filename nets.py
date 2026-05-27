@@ -87,7 +87,7 @@ class ForceNet():
             f.write(" ".join(f"{x:.16f}" for x in save_line) + "\n")
         return
 
-    def load_best_state(self, mode, override_nnodes=False, latest=False):
+    def load_best_state(self, mode, override_nnodes=False, latest=False, bestever=False):
 
         fname = f'./nets/{mode}.txt'
         if not latest:
@@ -99,7 +99,7 @@ class ForceNet():
                 cut = 10  #Only take the best from the last few iterations
                 with open(fname, "r") as f:
                     data = f.readlines()
-                    if len(data) > cut:
+                    if len(data) > cut and not bestever:
                         data = data[-cut:]
 
                     for li, line in enumerate(data[:]):
@@ -203,6 +203,62 @@ class ForceNet():
         self.biases_in[:] = self.parameter_set[self.n_inputs*self.n_nodes:self.n_inputs*self.n_nodes+self.n_nodes]
         self.weights_out[:] = self.parameter_set[self.n_inputs*self.n_nodes+self.n_nodes:self.n_inputs*self.n_nodes+self.n_nodes*2]
         self.biases_out[:] = self.parameter_set[self.n_inputs*self.n_nodes+self.n_nodes*2:self.n_inputs*self.n_nodes+self.n_nodes*2+1]
+        return
+
+    def load_specific_state(self, mode, state_number, override_nnodes=True):
+
+        fname = f'./nets/{mode}.txt'
+
+        if os.path.exists(fname):
+            print('Using specific state number')
+            best_score = 1e6; best_id = 0
+            best_parameters = []
+
+            with open(fname, "r") as f:
+                data = f.readlines()
+
+            line = data[state_number]
+            best_score = float(line.split(' ')[1])
+            best_ninputs = int(float(line.split(' ')[2]))
+            best_nnodes = int(float(line.split(' ')[3]))
+
+            for val in data[state_number].split(' ')[4:]:
+                best_parameters.append(float(val))
+        else:
+            raise Exception('Log file for this number not found...')
+
+        target_nparas = len(best_parameters)
+
+        if best_nnodes != self.n_nodes:
+            print("Best parameters are not for the correct amount of nodes")
+        if best_ninputs != self.n_inputs:
+            print("Best parameters are not for the correct amount of inputs")
+
+        if self.n_nodes == best_nnodes and self.n_inputs == best_ninputs:
+            print('Intended network size matches the best one.')
+            self.parameter_set[:] = np.array(best_parameters)
+            self.weights_in[:,:] = np.reshape(self.parameter_set[0:self.n_inputs*self.n_nodes], shape = np.shape(self.weights_in))
+            self.biases_in[:] = self.parameter_set[self.n_inputs*self.n_nodes:self.n_inputs*self.n_nodes+self.n_nodes]
+            self.weights_out[:] = self.parameter_set[self.n_inputs*self.n_nodes+self.n_nodes:self.n_inputs*self.n_nodes+self.n_nodes*2]
+            self.biases_out[:] = self.parameter_set[self.n_inputs*self.n_nodes+self.n_nodes*2:self.n_inputs*self.n_nodes+self.n_nodes*2+1]
+
+        elif best_nnodes <= self.n_nodes and best_ninputs <= self.n_inputs and override_nnodes:
+            print('Extending best solution to the larger model')
+            parameter_set_in = np.array(best_parameters)
+
+            self.weights_in[:best_ninputs,:best_nnodes] = np.reshape(parameter_set_in[0:best_ninputs*best_nnodes], shape = (best_ninputs, best_nnodes))
+            self.biases_in[:best_nnodes] = parameter_set_in[best_ninputs*best_nnodes:best_ninputs*best_nnodes+best_nnodes]
+            self.weights_out[:best_nnodes] = parameter_set_in[best_ninputs*best_nnodes+best_nnodes:best_ninputs*best_nnodes+best_nnodes*2]
+            self.biases_out[:] = parameter_set_in[best_ninputs*best_nnodes+best_nnodes*2:best_ninputs*best_nnodes+best_nnodes*2+1]
+
+            self.parameter_set[0:self.n_inputs*self.n_nodes] = np.reshape(self.weights_in, shape = (self.n_inputs*self.n_nodes))
+            self.parameter_set[self.n_inputs*self.n_nodes:self.n_inputs*self.n_nodes+self.n_nodes] = self.biases_in[:]
+            self.parameter_set[self.n_inputs*self.n_nodes+self.n_nodes:self.n_inputs*self.n_nodes+self.n_nodes+self.n_nodes] = self.weights_out[:]
+            self.parameter_set[self.n_inputs*self.n_nodes+self.n_nodes*2:self.n_inputs*self.n_nodes+self.n_nodes*2+1] = self.biases_out[:]
+
+        else:
+            raise Exception("Cannot use best parameters. Sort it out.")
+
         return
 
     def extend_net_dontuse(self, n_inputs_target, n_nodes_target):

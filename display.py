@@ -75,7 +75,7 @@ class display_tools:
         self.surface.blit(textSurfaceObj, textRectObj)
 
         if ring_steady:
-            textSurfaceObj = fontObj.render("Target speed %.1f" % bell.target_period , True, self.BLACK, self.WHITE)
+            textSurfaceObj = fontObj.render("Target Period: %.1fs" % bell.target_period , True, self.BLACK, self.WHITE)
             textRectObj = textSurfaceObj.get_rect()
             textRectObj.center = (0.5 * phy.pixels_x, 0.05 * phy.pixels_y)
 
@@ -86,7 +86,7 @@ class display_tools:
                     speed = (bell.all_handstrokes[-1] - bell.all_backstrokes[-1])*((bell.nbells*2 + 1)/(bell.nbells + 1))
                 else:
                     speed = (bell.all_backstrokes[-1] - bell.all_handstrokes[-1])*((bell.nbells*2 + 1)/(bell.nbells))
-                textSurfaceObj = fontObj.render("Current speed %.1f" % (speed) , True, self.BLACK, self.WHITE)
+                textSurfaceObj = fontObj.render("Current Period: %.1fs" % (speed) , True, self.BLACK, self.WHITE)
                 textRectObj = textSurfaceObj.get_rect()
                 textRectObj.center = (0.5 * phy.pixels_x, 0.1 * phy.pixels_y)
 
@@ -100,11 +100,12 @@ class display_tools:
         elif ring_down:
             current_state = "Ringing Down"
 
-        textSurfaceObj = fontObj.render(f"Mode: {current_state}", True, self.BLACK, self.WHITE)
+        if not ring_steady:
+            textSurfaceObj = fontObj.render(f"Mode: {current_state}", True, self.BLACK, self.WHITE)
 
-        textRectObj = textSurfaceObj.get_rect()
-        textRectObj.center = (0.5 * phy.pixels_x, 0.1 * phy.pixels_y)
-        self.surface.blit(textSurfaceObj, textRectObj)
+            textRectObj = textSurfaceObj.get_rect()
+            textRectObj.center = (0.5 * phy.pixels_x, 0.1 * phy.pixels_y)
+            self.surface.blit(textSurfaceObj, textRectObj)
 
 
 

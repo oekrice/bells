@@ -120,7 +120,7 @@ class init_bell:
         self.all_backstrokes = [-10]
         self.last_handstroke = 10   #time since last ring
         self.last_backstroke = 10
-        self.target_period = 4   #Target time between sucessive strokes
+        self.target_period = 4.0   #Target time between sucessive strokes
         self.nbells = 8 #Rhythm for handstroke gaps
         self.handstroke_accuracy = []   #Difference in the target times overall (for the fitness fn)
         self.backstroke_accuracy = []
@@ -375,13 +375,27 @@ class init_bell:
     def time_targets(self, phy):
         #Target ringing times, which can depend on the previous strike times.
         #Should not be negative for the inputs but can be here
-        if False:  #Target is based on previous same stroke
+        if False:  #Target is based on previous same stroke. Don't do this.'
             self.backstroke_target = self.all_backstrokes[-1] + self.target_period - phy.time
             self.handstroke_target = self.all_handstrokes[-1] + self.target_period - phy.time
-        elif True:
+        elif False:
             self.backstroke_target = self.all_handstrokes[-1] + self.nbells/(self.nbells*2 + 1)*self.target_period - phy.time
             self.handstroke_target = self.all_backstrokes[-1] + (self.nbells + 1)/(self.nbells*2 + 1)*self.target_period - phy.time
-        else:  #Receive info from the rhythm function
+        elif False:
+            """
+            Use whichever stroke is the most recent, for both of them
+            """
+            random_noise = 0.2 #How quickly to shift the target period here. Do make it quite hard I think
+            shifted_period = self.target_period*(1.0 + np.random.uniform(random_noise))
+
+            if self.all_handstrokes[-1] > self.all_backstrokes[-1]:
+                self.backstroke_target = self.all_handstrokes[-1] + self.nbells/(self.nbells*2 + 1)*shifted_period - phy.time
+                self.handstroke_target = self.all_handstrokes[-1] + shifted_period - phy.time
+            else:
+                self.handstroke_target = self.all_backstrokes[-1] + (self.nbells + 1)/(self.nbells*2 + 1)*shifted_period - phy.time
+                self.backstroke_target = self.all_backstrokes[-1] + shifted_period - phy.time
+
+        else:  #Receive info from the rhythm function. This can be used for more objective evaluation.
             self.backstroke_target = self.next_backstroke - phy.time
             self.handstroke_target = self.next_handstroke - phy.time
 
@@ -413,10 +427,10 @@ class init_bell:
     def get_scaled_state(self):
         """Get full system state, scaled into [0,1]."""
         """Angle then velocity (obviously veclocity can be large)"""
-        bt = max(self.backstroke_target/10.0,0)   #Time until desired stroke
-        ht = max(self.handstroke_target/10.0,0)
-        pb = self.last_backstroke/10.0     #Time since last stroke
-        ph = self.last_handstroke/10.0
+        bt = min(1.0, max(self.backstroke_target/10.0,0))   #Time until desired stroke
+        ht = min(1.0, max(self.handstroke_target/10.0,0))
+        pb = min(1.0, self.last_backstroke/10.0)     #Time since last stroke
+        ph = min(1.0, self.last_handstroke/10.0)
 
         if self.bell_angle > np.pi:
             up_handstroke = (self.bell_angle-np.pi)/self.stay_angle
@@ -428,7 +442,7 @@ class init_bell:
         else:
             up_backstroke = 0.0
 
-        return [np.sin(self.bell_angle), np.cos(self.bell_angle), self.bell_angle/(np.pi+self.stay_angle), self.velocity*np.sign(self.bell_angle)/10.0, self.velocity, np.abs(self.possible_force), up_handstroke, up_backstroke, self.m_1/1000]
+        return [np.sin(self.bell_angle), np.cos(self.bell_angle), self.bell_angle/(np.pi+self.stay_angle), self.velocity*np.sign(self.bell_angle)/10.0, self.velocity, np.abs(self.possible_force), up_handstroke, up_backstroke, self.m_1/1000, bt, ht, pb, ph]
 
         #return [self.bell_angle / (np.pi + self.stay_angle), self.velocity / (10.0), bt, ht, self.m_1/1000, pb, ph]
 
@@ -727,6 +741,95 @@ class init_bell:
             if verbose:
                 print('Raw penalties (0 good, 1 bad):', raw_penalties)
                 print('Minimiser:', (max_maximiser - total_maximiser)/max_maximiser)
+
+            return (max_maximiser - total_maximiser)/max_maximiser #This should do!
+
+        elif self.current_mode == 'steady':
+            max_time_cutoff = 30.0
+
+            min_velocity = 0.4
+
+            normalised_velocity = self.stay_touch_velocity/min_velocity
+            stay_penalty = normalised_velocity**2/(1 + normalised_velocity**2)  #This maxes out at 1 but gently goes down to zero
+
+            #Also would like to intoduce a penalty for force while set on the wrong stroke. Hopefully things will coincide and multiply easily.
+            #Proportion of time over the balance at which the force is great
+            set_hand = np.where(np.array(self.bell_angles) > np.pi + 0.15 - 0.01)[0]
+            hand_pull = np.where((np.array(self.bell_angles) > np.pi) & (np.array(self.velocities) < 1e-3))[0]
+
+            # print('a', set_hand)
+            # print('b', hand_pull)
+            hand_pts = list(set_hand)
+            # print('c', np.array(hand_pts))
+
+            hand_forces = np.array(self.forces)[hand_pts]
+
+            if len(hand_forces) > 0:
+                handforce_penalty = 1.0 - np.mean(np.abs(hand_forces)**2)
+            else:
+                handforce_penalty = 0.0
+
+            set_back = np.where(np.array(self.bell_angles) < -np.pi - 0.15 + 0.01)[0]
+
+            back_forces = np.array(self.forces)[set_back]
+
+            if len(back_forces) > 0:
+                backforce_penalty = 1.0 - np.mean(np.abs(back_forces)**2)
+            else:
+                backforce_penalty = 0.0 #Do want it to be at handstroke at some point
+
+            if len(self.handstroke_accuracy) > 2 and len(self.backstroke_accuracy) > 2:
+
+                filtered_hands = np.clip(self.handstroke_accuracy[1:], -2.0, 2.0)/2.0
+                filtered_backs = np.clip(self.backstroke_accuracy[1:], -2.0, 2.0)/2.0
+
+                timing_penalty = 0.5*(np.mean(filtered_hands**2) + np.mean(filtered_backs**2))
+            else:
+                timing_penalty = 1.0
+
+            #Also need to penalise ringing the bell down it seems. Bugger.
+            peaks, _ = find_peaks(np.abs(self.bell_angles))
+            max_angles = np.array(np.abs(self.bell_angles))[peaks]
+
+            if len(max_angles) > 0:
+                last_peak = max_angles[-1]
+                min_angle = np.pi/2
+
+                if last_peak > min_angle:
+                    angle_penalty = 0.0
+                else:
+                    angle_penalty = 1.0 - (last_peak/min_angle)**2
+
+            else:
+                angle_penalty = 1.0
+
+            overall_forceness = np.array(self.forces)
+
+            force_penalty = np.mean(overall_forceness**2)
+
+            alpha = 2
+            props = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+
+            raw_penalties = np.array([stay_penalty, backforce_penalty, handforce_penalty, angle_penalty, timing_penalty, force_penalty])
+            inverted_penalties = 1.0/(1.0 + raw_penalties)
+            #print('Inverted penalties (1 good, 0 bad):', inverted_penalties)
+            alpha_factors = np.ones(len(raw_penalties))
+            for i in range(1,len(raw_penalties)):
+                alpha_factors[i] = np.prod(inverted_penalties[:i])**alpha
+
+            #print('Alpha factors:', alpha_factors)
+            total_maximiser = 0
+            for i in range(len(raw_penalties)):
+                 total_maximiser += props[i]*alpha_factors[i]*inverted_penalties[i]
+            #print('Total maximiser:', total_maximiser)
+
+            max_maximiser = np.sum(props)
+
+            if verbose:
+                print('Raw penalties (0 good, 1 bad):', raw_penalties)
+                print('Minimiser:', (max_maximiser - total_maximiser)/max_maximiser)
+                print('Mean hand/back std:', np.std(filtered_hands*2.0), np.std(filtered_backs*2.0))
+                print('Mean hand/back error:', -np.mean(filtered_hands*2.0), -np.mean(filtered_backs*2.0))
 
             return (max_maximiser - total_maximiser)/max_maximiser #This should do!
 

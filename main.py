@@ -85,7 +85,7 @@ dp.import_images(sim.phy, sim.bell)
 # set up the window
 pygame.display.set_caption("Animation")
 
-n_inputs = 9
+n_inputs = 13
 refresh_rate = 2
 n_nodes = 50
 
@@ -94,7 +94,7 @@ Net.generate_random_seed()
 
 best_theta_up = None
 
-mode = 'up_back'
+mode = 'steady'
 if False:
     fitness_log = np.loadtxt('./data/fitness_log.txt', delimiter = ',')
     best_index = np.where(fitness_log[:,3] == np.min(fitness_log[:,3]))[0][0]
@@ -121,7 +121,7 @@ async def main():
 
     dp.surface.fill(dp.WHITE)
 
-    init_angle = 0.0
+    init_angle = np.pi+0.1
 
     sim.bell.bell_angle = init_angle
 
@@ -201,17 +201,14 @@ async def main():
             # if abs(bell.bell_angle) > bell.sound_angle and abs(bell.prev_angle) <= bell.sound_angle:
             if audio_enabled:
                 sim.bell.sound.play()
-                if sim.bell.bell_angle > 0:
-                    print('Back', sim.bell.backstroke_target)
-                else:
-                    print('Hand', sim.bell.handstroke_target)
+
             # continue
         # Check for force on wheel - this takes effect at the next timestep
 
         mouse = pygame.mouse.get_pos()  # use to activate things
 
-        if True and count%(60*60) == 1 and sim.bell.current_mode == 'down':  #Learn as it goes
-            Net.load_best_state('down' , override_nnodes=True, latest=True)
+        if True and count%(60*60) == 1 and sim.bell.current_mode == 'steady':  #Learn as it goes
+            Net.load_best_state('steady' , override_nnodes=True, latest=True)
 
         #Introduce a check for when the bell is sucessfully up, and stop when it gets there?
         #print(bell.handstroke_targets, bell.backstroke_targets)
@@ -229,7 +226,7 @@ async def main():
                         sim.bell.current_mode = 'up'
                         #Net.update_network(best_theta_up)
                         Net = ForceNet(50, n_inputs)
-                        Net.load_best_state('up', override_nnodes=True, latest=False)
+                        Net.load_best_state('up', override_nnodes=True, latest=False, bestever=False)
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_d:
@@ -243,7 +240,7 @@ async def main():
                     else:
                         sim.bell.current_mode = 'down'
                         Net = ForceNet(50, n_inputs)
-                        Net.load_best_state('down', override_nnodes=True, latest=False)
+                        Net.load_best_state('down', override_nnodes=True, latest=False, bestever=False)
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_s:
@@ -256,6 +253,8 @@ async def main():
                         sim.bell.current_mode = 'none'
                     else:
                         sim.bell.current_mode = 'steady'
+                        Net = ForceNet(50, n_inputs)
+                        Net.load_best_state('steady', override_nnodes=True, latest=False, bestever=False)
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_y:
@@ -269,7 +268,7 @@ async def main():
                     else:
                         sim.bell.current_mode = 'up_back'
                         Net = ForceNet(50, n_inputs)
-                        Net.load_best_state('up_back', override_nnodes=True, latest=False)
+                        Net.load_best_state('up_back', override_nnodes=True, latest=False, bestever=False)
 
 
             if event.type == pygame.KEYDOWN:
@@ -306,7 +305,7 @@ async def main():
                         sim.bell.current_mode = 'up'
                         #Net.update_network(best_theta_up)
                         Net = ForceNet(50, n_inputs)
-                        Net.load_best_state('up', override_nnodes=True, latest=False)
+                        Net.load_best_state('up', override_nnodes=True, latest=False, bestever=False)
 
             if event.type == 1025:
                 if mouse[0] > 75 and mouse[0] < 110 and mouse[1] > 70 and mouse[1] < 90:
@@ -321,7 +320,7 @@ async def main():
                         sim.bell.current_mode = 'up_back'
                         #Net.update_network(best_theta_up)
                         Net = ForceNet(50, n_inputs)
-                        Net.load_best_state('up_back', override_nnodes=True, latest=False)
+                        Net.load_best_state('up_back', override_nnodes=True, latest=False, bestever=False)
 
             if event.type == 1025:
                 if mouse[0] > 270 and mouse[0] < 340 and mouse[1] > 70 and mouse[1] < 90:
@@ -337,7 +336,7 @@ async def main():
                         sim.bell.current_mode = 'down'
                         #Net.update_network(best_theta_up)
                         Net = ForceNet(50, n_inputs)
-                        Net.load_best_state('down', override_nnodes=True, latest=False)
+                        Net.load_best_state('down', override_nnodes=True, latest=False, bestever=False)
 
             if event.type == 1025:
                 if sim.bell.stay_hit > 0:
