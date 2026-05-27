@@ -88,6 +88,8 @@ def evaluate_theta(theta, angles, bell_masses, velocities, target_periods, verbo
 
         sim.bell.target_period = target_periods[ai]
 
+        sim.bell.strict_rhythm = True
+
         if np.abs(sim.bell.bell_angle) < 0.5:
             sim.bell.max_length = 0.0  # max backstroke length
         else:
@@ -119,7 +121,6 @@ def evaluate_theta(theta, angles, bell_masses, velocities, target_periods, verbo
                 ring_up_back = True
                 action = Net_local.force(inputs)
                 force = min(1.0, action[0])
-
 
             sim.bell.pull = force
             sim.step(force)
@@ -157,6 +158,7 @@ def evaluate_theta(theta, angles, bell_masses, velocities, target_periods, verbo
     plt.xlabel('Time')
     plt.ylabel('Bell Angle')
     plt.title(f'Generation {int(generation)}, score: {score:03f}')
+    plt.xlim(-2.5, 62.5)
     plt.tight_layout()
     plt.savefig('./plots/timeplots/timeplot_%05d.png' % generation)
     plt.close()

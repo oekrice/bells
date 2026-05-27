@@ -116,8 +116,10 @@ class init_bell:
         self.stay_touch_velocity = 0.0 #The first time the stay is hit
         self.pull = 0.0
 
-        self.all_handstrokes = [-10]   #Timing of the respective strokes, in seconds.
+        self.all_handstrokes = [-10]   #Timing of the respective strokes, in seconds. The first ones of these need to be ignored.
         self.all_backstrokes = [-10]
+        self.hand_targets = []
+        self.back_targets = []
         self.last_handstroke = 10   #time since last ring
         self.last_backstroke = 10
         self.target_period = 4.0   #Target time between sucessive strokes
@@ -135,6 +137,9 @@ class init_bell:
 
         self.current_mode = 'none'   #This is whether it's ringing up, down etc.
         self.possible_force = 0.0
+        self.timing_seeds = np.random.uniform(-0.2,0.2,10000)  #These need to be kept CONSTANT throughout or the bell won't know what to aim for!
+        self.strict_rhythm = False   #TO be used for testing. All other 'bells' are correct throughout
+
 
     def timestep(self, phy):
         # Do the timestep here, using only bell.force, which comes either from an input or the machine
@@ -381,19 +386,34 @@ class init_bell:
         elif False:
             self.backstroke_target = self.all_handstrokes[-1] + self.nbells/(self.nbells*2 + 1)*self.target_period - phy.time
             self.handstroke_target = self.all_backstrokes[-1] + (self.nbells + 1)/(self.nbells*2 + 1)*self.target_period - phy.time
-        elif False:
+        elif True and not self.strict_rhythm:
             """
             Use whichever stroke is the most recent, for both of them
             """
-            random_noise = 0.2 #How quickly to shift the target period here. Do make it quite hard I think
-            shifted_period = self.target_period*(1.0 + np.random.uniform(random_noise))
+
+            noise_sample = len(self.all_handstrokes) + len(self.all_backstrokes)   #As the number of strokes increases, this should run through the (constant) noise sampler.
+
+            a1 = self.timing_seeds[noise_sample]
+            a2 = self.timing_seeds[noise_sample+1]
+
+            #I can't follow this, so let's do it in an easier-to-see way. Just determine the next stroke times and leave it at that.
+            current_bellgap = self.target_period*(1.0 + a1)
+            next_bellgap = self.target_period*(1.0 + a2)
+
+            #Find appropriate proportions
+            if self.all_handstrokes[-1] > self.all_backstrokes[-1]:
+                current_bellgap = current_bellgap*self.nbells/(self.nbells*2 + 1)
+                next_bellgap = next_bellgap*(self.nbells + 1)/(self.nbells*2 + 1)
+            else:
+                current_bellgap = current_bellgap*(self.nbells+1)/(self.nbells*2 + 1)
+                next_bellgap = next_bellgap*(self.nbells)/(self.nbells*2 + 1)
 
             if self.all_handstrokes[-1] > self.all_backstrokes[-1]:
-                self.backstroke_target = self.all_handstrokes[-1] + self.nbells/(self.nbells*2 + 1)*shifted_period - phy.time
-                self.handstroke_target = self.all_handstrokes[-1] + shifted_period - phy.time
+                self.backstroke_target = self.all_handstrokes[-1] + current_bellgap - phy.time
+                self.handstroke_target = self.all_handstrokes[-1] + current_bellgap + next_bellgap - phy.time
             else:
-                self.handstroke_target = self.all_backstrokes[-1] + (self.nbells + 1)/(self.nbells*2 + 1)*shifted_period - phy.time
-                self.backstroke_target = self.all_backstrokes[-1] + shifted_period - phy.time
+                self.handstroke_target = self.all_backstrokes[-1] + current_bellgap - phy.time
+                self.backstroke_target = self.all_backstrokes[-1] + current_bellgap + next_bellgap - phy.time
 
         else:  #Receive info from the rhythm function. This can be used for more objective evaluation.
             self.backstroke_target = self.next_backstroke - phy.time
@@ -785,6 +805,7 @@ class init_bell:
 
                 timing_penalty = 0.5*(np.mean(filtered_hands**2) + np.mean(filtered_backs**2))
             else:
+
                 timing_penalty = 1.0
 
             #Also need to penalise ringing the bell down it seems. Bugger.
@@ -828,8 +849,9 @@ class init_bell:
             if verbose:
                 print('Raw penalties (0 good, 1 bad):', raw_penalties)
                 print('Minimiser:', (max_maximiser - total_maximiser)/max_maximiser)
-                print('Mean hand/back std:', np.std(filtered_hands*2.0), np.std(filtered_backs*2.0))
-                print('Mean hand/back error:', -np.mean(filtered_hands*2.0), -np.mean(filtered_backs*2.0))
+                if len(filtered_hands) > 0 and len(filtered_backs) > 0:
+                    print('Mean hand/back std:', np.std(filtered_hands*2.0), np.std(filtered_backs*2.0))
+                    print('Mean hand/back error:', -np.mean(filtered_hands*2.0), -np.mean(filtered_backs*2.0))
 
             return (max_maximiser - total_maximiser)/max_maximiser #This should do!
 

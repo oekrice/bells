@@ -53,7 +53,7 @@ def evaluate_theta(theta):
     global mode
 
     end_height = np.pi+0.125
-    n_angles = 10
+    n_angles = 1
 
     angles = np.linspace(-end_height, end_height, n_angles)
     #angles = [3.0]
@@ -181,7 +181,7 @@ else:
 #nets = Networks()  #This is the old networks one
 print(Net.parameter_set)
 
-if True:
+if False:
     while True:
         #Plot best scores.
         fig, axs = plt.subplots(2, figsize = (10,7))
