@@ -140,6 +140,11 @@ class init_bell:
         self.timing_seeds = np.random.uniform(-0.2,0.2,10000)  #These need to be kept CONSTANT throughout or the bell won't know what to aim for!
         self.strict_rhythm = False   #TO be used for testing. All other 'bells' are correct throughout
 
+        #Things for method information
+        self.strike_count = 0
+        self.last_place = 0
+        self.next_place = 0
+        self.nextbutone_place = 0
 
     def timestep(self, phy):
         # Do the timestep here, using only bell.force, which comes either from an input or the machine
@@ -327,6 +332,8 @@ class init_bell:
             if phy.time > 0.1:
 
                 if self.clapper_angle < -np.pi/4:
+                    #print('Hand', self.strike_count, self.bell_angle, phy.time, self.handstroke_target)
+
                     #print('Hand', phy.time, self.handstroke_target)
                     self.all_handstrokes.append(phy.time)
                     self.handstroke_accuracy.append(self.handstroke_target)
@@ -337,12 +344,13 @@ class init_bell:
                     else:
                         self.next_handstroke, self.next_backstroke = self.establish_rhythm(self.next_handstroke)
                     #print('Targets', self.next_backstroke, self.next_handstroke)
+                    self.strike_count = self.strike_count + 1
+
                 elif self.clapper_angle > np.pi/4:
-                    #print('Back', phy.time, self.backstroke_target)
+                    #print('Back', self.strike_count, self.bell_angle, phy.time, self.backstroke_target)
                     self.all_backstrokes.append(phy.time)
                     self.backstroke_accuracy.append(self.backstroke_target)
-
-
+                    self.strike_count = self.strike_count + 1
             if phy.do_volume:
                 if self.sound.get_volume() < self.volume_ref:
                     self.sound.set_volume(self.volume_ref)
@@ -351,6 +359,7 @@ class init_bell:
             self.ding = True
             self.ding_reset = False
             self.ding_time = phy.game_time
+
         else:
             self.ding = False
 
