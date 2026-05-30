@@ -31,8 +31,9 @@ import os
 import multiprocessing as mp
 import time
 
+from scipy.stats.qmc import LatinHypercube as hpc
 import matplotlib
-#matplotlib.use('Agg')
+matplotlib.use('Agg')
 
 if True:
     nest_asyncio.apply()
@@ -154,6 +155,7 @@ load_best = True
 extend_net = True
 Net = ForceNet(n_nodes, n_inputs)
 counter = 0  #Start at this one
+plotcount = 0
 
 while True:
 
@@ -189,24 +191,30 @@ while True:
         score = float(latest[1])
         nnodes_actual = int(float(latest[3]))
 
-        masses = [100,200,300,400,500]
-        periods = [3.5,4.0,4.5,5.0,5.5]
+        # masses = [100,200,300,400,500]
+        # periods = [3.5,4.0,4.5,5.0,5.5]
 
-        for mi, mass in enumerate(masses):
-            for ti, target_period in enumerate(periods):
-                bell_cadence = target_period/(nbells*2 + 1)   #Distance between each bell
+        sampler = hpc(d=2)
+        samples = sampler.random(50)
 
-                handstroke_accuracy, backstroke_accuracy = evaluate_theta(Net.parameter_set, [np.pi-0.1], [mass], [0], [target_period])
-                nstrokes_full = min(len(handstroke_accuracy[:]), len(backstroke_accuracy[:]))
+        masses = (samples[:,0]*400) + 100
+        periods = (samples[:,1]*2.0) + 3.5
 
-                #Find accuracy position on chart
-                strike_pos = []
-                handstroke_accuracy[0] = 0.0
-                for stroke in range(nstrokes_full):
-                    strike_pos.append(-handstroke_accuracy[stroke]/bell_cadence + selected_bell + 1)
-                    strike_pos.append(-backstroke_accuracy[stroke]/bell_cadence + selected_bell + 1)
+        for i, mass in enumerate(masses):
+            target_period = periods[i]
+            bell_cadence = target_period/(nbells*2 + 1)   #Distance between each bell
 
-                plt.plot(strike_pos, np.arange(2*nstrokes_full) + 1, c = 'red', linewidth=0.75)
+            handstroke_accuracy, backstroke_accuracy = evaluate_theta(Net.parameter_set, [np.pi-0.1], [mass], [0], [target_period])
+            nstrokes_full = min(len(handstroke_accuracy[:]), len(backstroke_accuracy[:]))
+
+            #Find accuracy position on chart
+            strike_pos = []
+            handstroke_accuracy[0] = 0.0
+            for stroke in range(nstrokes_full):
+                strike_pos.append(-handstroke_accuracy[stroke]/bell_cadence + selected_bell + 1)
+                strike_pos.append(-backstroke_accuracy[stroke]/bell_cadence + selected_bell + 1)
+
+            plt.plot(strike_pos, np.arange(2*nstrokes_full) + 1, c = 'red', linewidth=0.75)
 
         plt.xlim(-1,nbells+2)
         plt.ylim(nstrikes+1, 0)
@@ -216,11 +224,12 @@ while True:
         #plt.axis('equal')
         plt.tight_layout()
 
-        plt.savefig('./plots/methodplots/rounds_%05d.png' % generation)
+        plt.savefig('./plots/methodplots/rounds_%05d.png' % plotcount)
         #plt.show()
         plt.close()
 
-        counter += 1
+        counter += 10
+        plotcount += 1
         print('Completed and plots saved')
 
     else:

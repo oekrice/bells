@@ -255,6 +255,8 @@ async def main():
                         sim.bell.current_mode = 'none'
                     else:
                         sim.bell.current_mode = 'steady'
+                        sim.bell.strict_rhythm = False
+
                         Net = ForceNet(50, n_inputs)
                         Net.load_best_state('steady', override_nnodes=True, latest=False, bestever=False)
 

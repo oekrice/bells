@@ -204,13 +204,13 @@ if True:
                         best_scores.append(best_score)
                         scores.append(float(line.split(' ')[1]))
         axs[0].plot(scores)
-        #axs[0].set_xscale('log')
+        axs[0].set_xscale('log')
         axs[0].set_yscale('log')
 
         sigmas = np.loadtxt('./nets/sigmas_all.txt', delimiter = ',')
         axs[1].plot(sigmas)
-        #axs[1].set_xscale('log')
-        #axs[1].set_yscale('log')
+        axs[1].set_xscale('log')
+        axs[1].set_yscale('log')
 
         plt.tight_layout()
         plt.savefig('./plots/best_score.png')

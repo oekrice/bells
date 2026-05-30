@@ -339,6 +339,7 @@ class init_bell:
                     self.handstroke_accuracy.append(self.handstroke_target)
                     #UPDATE RHYTHM ROUTINES
                     if len(self.handstroke_accuracy) == 1 or self.update_rhythm:  #First handstroke -- establish rhythm
+                        self.strict_rhythm = True
                         self.next_handstroke, self.next_backstroke = self.establish_rhythm(phy.time)
                         self.update_rhythm = False
                     else:
