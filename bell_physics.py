@@ -8,8 +8,6 @@ import numpy as np
 import time
 import pygame, sys
 from pygame.locals import *
-import matplotlib.pyplot as plt
-from scipy.signal import find_peaks
 
 
 class init_physics:

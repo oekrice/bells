@@ -23,7 +23,7 @@ from display import display_tools
 from nets import ForceNet
 from learn import run_bell
 
-if True:
+if False:
     nest_asyncio.apply()
 
 if len(sys.argv) > 1:
@@ -72,7 +72,7 @@ print('Bell mass', sim.bell.m_1)
 dp = display_tools(sim.phy, sim.bell)
 
 if audio_enabled:
-    sim.bell.sound = pygame.mixer.Sound("bellsound_deep.wav")
+    sim.bell.sound = pygame.mixer.Sound("bellsound_deep.ogg")
 else:
     sim.bell.sound = None
     sim.phy.do_volume = False

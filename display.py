@@ -6,10 +6,8 @@ Created on Thu Aug 29 10:03:56 2024
 """
 
 import numpy as np
-import pygame, sys
+import pygame
 from pygame.locals import *
-import time
-
 
 class display_tools:
     # Display tools, to keep them out of the way of the main function

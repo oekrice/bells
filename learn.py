@@ -10,7 +10,6 @@ import numpy as np
 
 from bell_physics import init_bell, init_physics
 
-import matplotlib.pyplot as plt
 import random
 
 
