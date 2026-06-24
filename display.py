@@ -131,6 +131,17 @@ class display_tools:
             textRectObj.center = (0.5 * phy.pixels_x, 0.9 * phy.pixels_y)
             self.surface.blit(textSurfaceObj, textRectObj)
 
+    def display_mass(self, phy, bell):
+        # Display 'handstroke' or 'backstroke'
+        fontObj = pygame.font.Font(pygame.font.match_font("arial"), 16)
+        
+        fstring = f"Bell Mass (Click to Change): - %03d +" % bell.m_1
+
+        textSurfaceObj = fontObj.render(fstring, True, self.BLACK, self.WHITE)
+        textRectObj = textSurfaceObj.get_rect()
+        textRectObj.center = (0.5 * phy.pixels_x, 0.95 * phy.pixels_y)
+        self.surface.blit(textSurfaceObj, textRectObj)
+
     def draw_bell(self, phy, bell):
         # Roate the bell image and paste
         wheel_rot, (x_box, y_box) = phy.rotate(self.wheelimg, bell.bell_angle)

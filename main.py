@@ -12,7 +12,6 @@ import nest_asyncio
 import pygame, sys
 from pygame.locals import *
 import numpy as np
-import neat
 import pickle
 import os
 import random
@@ -121,7 +120,7 @@ async def main():
 
     dp.surface.fill(dp.WHITE)
 
-    init_angle = np.pi+0.1
+    init_angle = 0.0
 
     sim.bell.bell_angle = init_angle
 
@@ -196,6 +195,8 @@ async def main():
 
                 dp.display_force(sim.phy, sim.bell, sim.bell.wheel_force)
 
+                dp.display_mass(sim.phy, sim.bell)
+
             dp.draw_bell(sim.phy, sim.bell)
 
         # Check for sound
@@ -244,21 +245,21 @@ async def main():
                         Net = ForceNet(50, n_inputs)
                         Net.load_best_state('down', override_nnodes=True, latest=False, bestever=False)
 
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_s:
-                    ring_steady = not (ring_steady)
-                    ring_up = False
-                    ring_down = False
-                    ring_up_back = False
-                    sim.bell.update_rhythm = True
-                    if sim.bell.current_mode == 'steady':
-                        sim.bell.current_mode = 'none'
-                    else:
-                        sim.bell.current_mode = 'steady'
-                        sim.bell.strict_rhythm = False
+            # if event.type == pygame.KEYDOWN:
+            #     if event.key == pygame.K_s:
+            #         ring_steady = not (ring_steady)
+            #         ring_up = False
+            #         ring_down = False
+            #         ring_up_back = False
+            #         sim.bell.update_rhythm = True
+            #         if sim.bell.current_mode == 'steady':
+            #             sim.bell.current_mode = 'none'
+            #         else:
+            #             sim.bell.current_mode = 'steady'
+            #             sim.bell.strict_rhythm = False
 
-                        Net = ForceNet(50, n_inputs)
-                        Net.load_best_state('steady', override_nnodes=True, latest=False, bestever=False)
+            #             Net = ForceNet(50, n_inputs)
+            #             Net.load_best_state('steady', override_nnodes=True, latest=False, bestever=False)
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_y:
@@ -301,6 +302,7 @@ async def main():
                 if mouse[0] > 40 and mouse[0] < 75 and mouse[1] > 70 and mouse[1] < 90:
                     # left button
                     ring_up = not (ring_up)
+                    ring_up_back = False
                     ring_down = False
                     ring_steady = False
                     if sim.bell.current_mode == 'up':
@@ -353,6 +355,21 @@ async def main():
                         sim.bell.prev_angle = 0.0
                         sim.bell.max_length = 0.0  # max backstroke length
                         sim.bell.stay_angle = 0.15
+
+            if event.type == 1025:
+                if mouse[0] > 0.65 * sim.phy.pixels_x and mouse[0] < 0.69 * sim.phy.pixels_x  and mouse[1] > 0.9 * sim.phy.pixels_y:
+                    # Change bell mass downwards
+                    if sim.bell.m_1 >  50:
+                        sim.bell.m_1 = sim.bell.m_1 - 10
+                        sim.bell.m_2 = 0.05*sim.bell.m_1
+
+            if event.type == 1025:
+                if mouse[0] > 0.74 * sim.phy.pixels_x and mouse[0] < 0.78 * sim.phy.pixels_x  and mouse[1] > 0.9 * sim.phy.pixels_y:
+                    # Change bell mass upwards
+                    if sim.bell.m_1 < 500:
+                        sim.bell.m_1 = sim.bell.m_1 + 10
+                        sim.bell.m_2 = 0.05*sim.bell.m_1
+
 
 
             if event.type == QUIT:

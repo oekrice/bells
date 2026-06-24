@@ -111,7 +111,8 @@ class ForceNet():
 
                 for val in data[best_id].split(' ')[4:]:
                     best_parameters.append(float(val))
-                print('Best score', best_score)
+                save_line = [li, best_score, best_ninputs, best_nnodes] + best_parameters
+                np.savetxt(f'./nets/{mode}.txt', [save_line])
             elif os.path.exists('./nets/default.txt'):
                 print('Using default state')
                 best_score = 1e6; best_id = 0
@@ -148,10 +149,10 @@ class ForceNet():
 
         target_nparas = len(best_parameters)
 
-        if best_nnodes != self.n_nodes:
-            print("Best parameters are not for the correct amount of nodes")
-        if best_ninputs != self.n_inputs:
-            print("Best parameters are not for the correct amount of inputs")
+        # if best_nnodes != self.n_nodes:
+        #     print("Best parameters are not for the correct amount of nodes")
+        # if best_ninputs != self.n_inputs:
+        #     print("Best parameters are not for the correct amount of inputs")
 
         if self.n_nodes == best_nnodes and self.n_inputs == best_ninputs:
             print('Intended network size matches the best one.')
