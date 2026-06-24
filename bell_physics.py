@@ -130,8 +130,8 @@ class init_bell:
         self.backstroke_target = -10.0
         self.update_rhythm = False
 
-        self.next_handstroke = self.target_period
-        self.next_backstroke = self.target_period/2
+        self.next_handstroke = self.target_period/2
+        self.next_backstroke = self.target_period
 
         self.strike_limit = 100
 
@@ -337,17 +337,25 @@ class init_bell:
                     #print('Hand', phy.time, self.handstroke_target)
                     self.all_handstrokes.append(phy.time)
                     self.handstroke_accuracy.append(self.handstroke_target)
+                    #print('Targets', self.next_backstroke, self.next_handstroke, phy.time)
+
+                    if self.strike_count == 0 :  #This is the first strike. Can do rhythm now.
+                        self.update_rhythm = True
                     #UPDATE RHYTHM ROUTINES
-                    if len(self.handstroke_accuracy) == 1 or self.update_rhythm:  #First handstroke -- establish rhythm
+                    if self.update_rhythm:  #First handstroke -- establish rhythm
                         self.strict_rhythm = True
                         self.next_handstroke, self.next_backstroke = self.establish_rhythm(phy.time)
                         self.update_rhythm = False
                     else:
                         self.next_handstroke, self.next_backstroke = self.establish_rhythm(self.next_handstroke)
-                    #print('Targets', self.next_backstroke, self.next_handstroke)
                     self.strike_count = self.strike_count + 1
 
+
                 elif self.clapper_angle > np.pi/4:
+                    if self.strike_count == 0 :  #This is the first strike. Can do rhythm now.
+                        self.update_rhythm = True
+                    #print('Targets', self.next_backstroke, self.next_handstroke, phy.time)
+
                     #print('Back', self.strike_count, self.bell_angle, phy.time, self.backstroke_target)
                     self.all_backstrokes.append(phy.time)
                     self.backstroke_accuracy.append(self.backstroke_target)
@@ -428,7 +436,6 @@ class init_bell:
         else:  #Receive info from the rhythm function. This can be used for more objective evaluation.
             self.backstroke_target = self.next_backstroke - phy.time
             self.handstroke_target = self.next_handstroke - phy.time
-
     def ropelength(self):
         # Outputs the length of the rope above the garter hole, relative to the minimum.
         # Also outputs the maximum force available with direction.
@@ -477,14 +484,16 @@ class init_bell:
         #return [self.bell_angle / (np.pi + self.stay_angle), self.velocity / (10.0), bt, ht, self.m_1/1000, pb, ph]
 
     def establish_rhythm(self, reference_time):
+
         """Estalishes the desired times for each stroke"""
         """Outputs the TIMES that these should happen as a series of arrays"""
         """Need to be able to readjust while ringing I suppose (but not for training)"""
         """Reference_time is the time of the previous first handstroke in the 'change'"""
         belltimes = np.linspace(reference_time, reference_time + self.target_period, self.nbells*2+2)
         #For steady rounds at the minute
-        next_handstroke = belltimes[-1]
-        next_backstroke = belltimes[self.nbells]
+        next_handstroke = belltimes[-1] + np.random.uniform(-0.05,0.05)
+        next_backstroke = belltimes[self.nbells] + np.random.uniform(-0.05,0.05)
+
 
         return next_handstroke, next_backstroke
 
@@ -808,16 +817,30 @@ class init_bell:
             else:
                 backforce_penalty = 0.0 #Do want it to be at handstroke at some point
 
-            if len(self.handstroke_accuracy) > 2 and len(self.backstroke_accuracy) > 2:
+            if False:  #Use for doing a fairly long time
+                print(self.handstroke_accuracy, self.backstroke_accuracy, self.strike_count)
+                if len(self.handstroke_accuracy) > 1 and len(self.backstroke_accuracy) > 1:
 
-                filtered_hands = np.clip(self.handstroke_accuracy[1:], -2.0, 2.0)/2.0
-                filtered_backs = np.clip(self.backstroke_accuracy[1:], -2.0, 2.0)/2.0
+                    filtered_hands = np.clip(self.handstroke_accuracy[1:], -3.0, 3.0)/3.0
+                    filtered_backs = np.clip(self.backstroke_accuracy[1:], -3.0, 3.0)/3.0
 
-                timing_penalty = 0.5*(np.mean(filtered_hands**2) + np.mean(filtered_backs**2))
-            else:
+                    timing_penalty = 0.5*(np.mean(filtered_hands**2) + np.mean(filtered_backs**2))
+                else:
 
-                timing_penalty = 1.0
-
+                    timing_penalty = 1.0
+            else:   #Use for just a couple of strokes (literally, one each)
+                if len(self.handstroke_accuracy) > 1 or len(self.backstroke_accuracy) > 1:
+                    if len(self.handstroke_accuracy) > len(self.backstroke_accuracy):  #Discard the first handstroke
+                        filtered_hands = np.clip([self.handstroke_accuracy[1]], -3.0, 3.0)/3.0
+                        filtered_backs = np.clip([self.backstroke_accuracy[0]], -3.0, 3.0)/3.0
+                    else:  #Discard the first handstroke
+                        filtered_hands = np.clip([self.handstroke_accuracy[0]], -3.0, 3.0)/3.0
+                        filtered_backs = np.clip([self.backstroke_accuracy[1]], -3.0, 3.0)/3.0
+                    timing_penalty = max(np.mean(filtered_hands**2), np.mean(filtered_backs**2))
+                else:
+                    timing_penalty = 1.0
+                    filtered_hands = []
+                    filtered_backs = []
             #Also need to penalise ringing the bell down it seems. Bugger.
             peaks, _ = find_peaks(np.abs(self.bell_angles))
             max_angles = np.array(np.abs(self.bell_angles))[peaks]
@@ -862,7 +885,7 @@ class init_bell:
                 if len(filtered_hands) > 0 and len(filtered_backs) > 0:
                     print('Mean hand/back std:', np.std(filtered_hands*2.0), np.std(filtered_backs*2.0))
                     print('Mean hand/back error:', -np.mean(filtered_hands*2.0), -np.mean(filtered_backs*2.0))
-
+                    print('Actual differences:', filtered_hands*2, filtered_backs*2)
             return (max_maximiser - total_maximiser)/max_maximiser #This should do!
 
 

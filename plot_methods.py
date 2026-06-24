@@ -197,8 +197,8 @@ while True:
         sampler = hpc(d=2)
         samples = sampler.random(50)
 
-        masses = (samples[:,0]*400) + 100
-        periods = (samples[:,1]*2.0) + 3.5
+        masses = (samples[:,0]*10) + 295
+        periods = (samples[:,1]*0.1) + 5.0
 
         for i, mass in enumerate(masses):
             target_period = periods[i]

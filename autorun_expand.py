@@ -95,6 +95,8 @@ def evaluate_theta(theta, angles, bell_masses, velocities, target_periods, verbo
 
         sim.bell.target_period = target_periods[ai]
 
+        sim.bell.strict_rhythm = True
+
         if np.abs(sim.bell.bell_angle) < 0.5:
             sim.bell.max_length = 0.0  # max backstroke length
         else:
@@ -102,7 +104,7 @@ def evaluate_theta(theta, angles, bell_masses, velocities, target_periods, verbo
 
         # Run the given simulation for up to num_steps time steps.
 
-        while sim.phy.time < max_time:
+        while sim.phy.time < max_time and sim.bell.strike_count < 3:  #Only need the first three strikes. One is discounted, then use the others
             force = 0.0  # This value between 0 and 1 and then update based on the physics.
 
             inputs = sim.bell.get_scaled_state()[:n_inputs]
@@ -193,9 +195,12 @@ def run_cma_mp(n_nodes, n_inputs, n_cores=None):
 
     try:
         local_sigma_log = np.loadtxt('./nets/sigmas_nnodes.txt', delimiter = ',')
-        max_prev_sigma = np.max(local_sigma_log)
-        initial_sigma = 0.9*max_prev_sigma
-        terminate_sigma = 0.5*max_prev_sigma
+        if len(local_sigma_log) > 100:
+            max_prev_sigma = np.max(local_sigma_log[100:])
+        else:
+            max_prev_sigma = np.max(local_sigma_log)
+        initial_sigma = max_prev_sigma
+        terminate_sigma = 0.25*max_prev_sigma
         print('Loaded sigma log. Previous maximum is:', max_prev_sigma)
         fname = f'./nets/{mode}.txt'
         #Determine the correct number of parameters for this best state
@@ -279,12 +284,12 @@ def run_cma_mp(n_nodes, n_inputs, n_cores=None):
 
             #Below for steady training:
             angles = np.random.uniform(np.pi*0.75,np.pi+0.1, n_angles)
-            angles*= np.random.choice([-1,1], len(angles))
-            angles += np.random.uniform(-0.025,0.025, n_angles)
+            #angles*= np.random.choice([-1,1], len(angles))
+            #angles += np.random.uniform(-0.025,0.025, n_angles)
 
             velocities = np.random.uniform(-0.0,0.0,len(angles))
-            bell_masses = np.random.uniform(100,500,len(angles))
-            target_periods = np.random.uniform(3.0,6.0,len(angles))
+            bell_masses = np.random.uniform(290,310,len(angles))
+            target_periods = np.random.uniform(4.9,5.1,len(angles))
             #bell_masses = np.random.choice([500], size=len(angles))  #Just do the extremes
 
             print('Bell mass range:', np.min(bell_masses), np.max(bell_masses))
@@ -348,10 +353,10 @@ def run_cma_mp(n_nodes, n_inputs, n_cores=None):
 
 
 if not test_mode:
-    n_nodes = 6
+    n_nodes = 2
     n_inputs = 13
 
-    while n_nodes < 100:
+    while n_nodes < 20:
         #Do the entire run
         run_cma_mp(n_nodes, n_inputs, n_cores=8)
         n_nodes += 2
@@ -361,11 +366,16 @@ else:
     n_nodes = 6
     n_inputs = 13
     Net = ForceNet(n_nodes, n_inputs)
-    Net.load_best_state(mode, override_nnodes=extend_net, latest=True)
+    try:
+        Net.load_best_state(mode, override_nnodes=extend_net, latest=True)
+    except:
+        print('Net not found. Generating random seed.')
+        Net.generate_random_seed()
 
-    for angle in np.linspace(np.pi-0.2, np.pi-0.1, 12):
+    for ai, angle in enumerate(np.linspace(np.pi-0.2, np.pi+0.1, 11)):
         print('Angle:', angle)
-        fitness = evaluate_theta(Net.parameter_set, [angle], [500], np.array([0]), [4.0], verbose = True)
+
+        fitness = evaluate_theta(Net.parameter_set, [angle], [300], np.array([0]), [10.0], verbose = True)
 
 
 
