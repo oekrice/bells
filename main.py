@@ -7,10 +7,10 @@ Created on Thu Aug 29 10:03:56 2024
 
 import asyncio
 
-import nest_asyncio
+#import nest_asyncio
 
 import pygame, sys
-from pygame.locals import *
+from pygame.locals import QUIT, Color
 import numpy as np
 import pickle
 import os
@@ -26,86 +26,45 @@ from learn import run_bell
 if False:
     nest_asyncio.apply()
 
-if len(sys.argv) > 1:
-    load_num = int(sys.argv[1])
-else:
-    load_num = -1
 
-pygame.init()
-
-try:
-    pygame.mixer.init()
-    audio_enabled = True
-except pygame.error:
-    print("Audio disabled")
-    audio_enabled = False
-
-#phy = init_physics()
-#bell = init_bell(phy, 0.0)
-
-runs = 15; runs_per_net = 30
-amin = np.pi * 0.9; amax = np.pi
-rmin = (runs//2)*(amax - amin)/(runs_per_net//2) + amin
-rmax = (runs//2+1)*(amax - amin)/(runs_per_net//2) + amin
-
-if runs%2 == 0:
-    rmin = -rmin; rmax = -rmax
-
-# bell.bell_angle = 0.0#uniform(rmin, rmax)
-# bell.clapper_angle = np.sign(bell.bell_angle)*bell.clapper_limit + bell.bell_angle
-#
-# if np.abs(bell.bell_angle) < 0.5:
-#     bell.max_length = 0.0  # max backstroke length
-# else:
-#     bell.max_length = bell.radius*(1.0 + 3*np.pi/2 - bell.garter_hole)
-#
-#
-# bell.target_period = 5.0
-# bell.stay_break_limit = 1.0
-#
-# bell.m_1 = 500   #Bell mass
-# bell.m_2 = 0.05*bell.m_1   #Clapper mass
-sim = run_bell()
-
-print('Bell mass', sim.bell.m_1)
-
-dp = display_tools(sim.phy, sim.bell)
-
-if audio_enabled:
-    sim.bell.sound = pygame.mixer.Sound("bellsound_deep.ogg")
-else:
-    sim.bell.sound = None
-    sim.phy.do_volume = False
-
-# Set up colours
-dp.define_colours()
-# Import images and transform scales
-dp.import_images(sim.phy, sim.bell)
-# set up the window
-pygame.display.set_caption("Animation")
-
-n_inputs = 13
-refresh_rate = 2
-n_nodes = 50
-
-Net = ForceNet(n_nodes, n_inputs)
-Net.generate_random_seed()
-
-best_theta_up = None
-
-mode = 'steady'
-if False:
-    fitness_log = np.loadtxt('./data/fitness_log.txt', delimiter = ',')
-    best_index = np.where(fitness_log[:,3] == np.min(fitness_log[:,3]))[0][0]
-    if best_index is not None:
-        best_theta_up = []
-        with open(f'./nets/{mode}.txt', "r") as f:
-            data = f.readlines()
-
-        for val in data[best_index].split(' ')[4:]:
-            best_theta_up.append(float(val))
 
 async def main():
+
+    print('Thing is running!')
+
+    pygame.init()
+
+    try:
+        pygame.mixer.init()
+        audio_enabled = True
+    except pygame.error:
+        print("Audio disabled")
+        audio_enabled = False
+
+    print('Thing is running!')
+    sim = run_bell()
+
+    dp = display_tools(sim.phy, sim.bell)
+
+    if audio_enabled:
+        sim.bell.sound = pygame.mixer.Sound("bellsound_deep.ogg")
+    else:
+        sim.bell.sound = None
+        sim.phy.do_volume = False
+
+    # Set up colours
+    dp.define_colours()
+    # Import images and transform scales
+    dp.import_images(sim.phy, sim.bell)
+    # set up the window
+    pygame.display.set_caption("Animation")
+
+    n_inputs = 13
+    refresh_rate = 2
+    n_nodes = 50
+
+    Net = ForceNet(n_nodes, n_inputs)
+    Net.generate_random_seed()
 
     fpsClock = pygame.time.Clock()
 

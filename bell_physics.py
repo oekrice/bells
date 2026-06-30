@@ -7,7 +7,6 @@ Created on Mon Sep  2 17:29:08 2024
 import numpy as np
 import time
 import pygame, sys
-from pygame.locals import *
 
 
 class init_physics:
