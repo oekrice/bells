@@ -165,7 +165,6 @@ class ForceNet():
         elif best_nnodes <= self.n_nodes and best_ninputs <= self.n_inputs and override_nnodes:
             print('Extending best solution to the larger model')
             parameter_set_in = np.array(best_parameters)
-
             self.weights_in[:best_ninputs,:best_nnodes] = np.reshape(parameter_set_in[0:best_ninputs*best_nnodes], shape = (best_ninputs, best_nnodes))
             self.biases_in[:best_nnodes] = parameter_set_in[best_ninputs*best_nnodes:best_ninputs*best_nnodes+best_nnodes]
             self.weights_out[:best_nnodes] = parameter_set_in[best_ninputs*best_nnodes+best_nnodes:best_ninputs*best_nnodes+best_nnodes*2]

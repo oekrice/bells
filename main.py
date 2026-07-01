@@ -114,15 +114,10 @@ async def main():
 
         inputs = sim.bell.get_scaled_state()[:n_inputs]
 
-        angle = 0.5*(1.0 - np.cos(sim.bell.bell_angle))
-        velocity = sim.bell.velocity
-
-        #print(angle, velocity, angle**2 + velocity**2)
         if sim.bell.current_mode == 'up':
             ring_up = True
             action = Net.force(inputs)
             force = min(1.0, action[0] + force)
-
         if sim.bell.current_mode == 'down':
             ring_down = True
             action = Net.force(inputs)
